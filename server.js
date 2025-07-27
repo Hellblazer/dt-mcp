@@ -381,8 +381,13 @@ async function main() {
       },
       async ({ uuid, maxDepth = 3 }) => {
         logger.info(`Building knowledge graph from document: ${uuid} with depth: ${maxDepth}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
         try {
-          const graph = await devonthink.buildKnowledgeGraph(uuid, maxDepth);
+          const graph = await devonthink.buildKnowledgeGraph(uuid, maxDepth, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(graph, null, 2) }]
           };
@@ -427,8 +432,13 @@ async function main() {
       },
       async ({ searchQuery = '', maxDocuments = 50, minClusterSize = 3 }) => {
         logger.info(`Detecting knowledge clusters for: ${searchQuery || 'current selection'}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
         try {
-          const clusters = await devonthink.detectKnowledgeClusters(searchQuery, maxDocuments, minClusterSize);
+          const clusters = await devonthink.detectKnowledgeClusters(searchQuery, maxDocuments, minClusterSize, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(clusters, null, 2) }]
           };
@@ -450,8 +460,16 @@ async function main() {
       },
       async ({ workflowType, queryOrUUID }) => {
         logger.info(`Running research workflow: ${workflowType} with ${queryOrUUID}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
         try {
-          const result = await devonthink.automateResearch(workflowType, queryOrUUID);
+          const result = await devonthink.automateResearch(workflowType, queryOrUUID, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
@@ -516,8 +534,13 @@ async function main() {
       },
       async ({ uuids }) => {
         logger.info(`Analyzing similarity between ${uuids.length} documents`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
         try {
-          const analysis = await devonthink.analyzeDocumentSimilarity(uuids);
+          const analysis = await devonthink.analyzeDocumentSimilarity(uuids, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
           };
@@ -539,8 +562,16 @@ async function main() {
       },
       async ({ documentUUIDs, synthesisType = 'summary' }) => {
         logger.info(`Synthesizing ${documentUUIDs.length} documents with type: ${synthesisType}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
         try {
-          const synthesis = await devonthink.synthesizeDocuments(documentUUIDs, synthesisType);
+          const synthesis = await devonthink.synthesizeDocuments(documentUUIDs, synthesisType, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(synthesis, null, 2) }]
           };

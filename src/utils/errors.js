@@ -10,7 +10,8 @@ export const ErrorTypes = {
   OPERATION_FAILED: 'OPERATION_FAILED',
   TRUNCATION_WARNING: 'TRUNCATION_WARNING',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
-  TIMEOUT_ERROR: 'TIMEOUT_ERROR'
+  TIMEOUT_ERROR: 'TIMEOUT_ERROR',
+  PROGRESS_UPDATE: 'PROGRESS_UPDATE'
 };
 
 // Create standardized error response
@@ -165,4 +166,77 @@ export const errorHandlers = {
       { totalResults, returnedResults }
     );
   }
+};
+
+// Progress tracking utilities
+export function createProgressUpdate(operation, stage, progress, details = {}) {
+  return {
+    type: 'progress',
+    operation: operation,
+    stage: stage,
+    progress: progress, // 0-100 percentage
+    timestamp: new Date().toISOString(),
+    details: details
+  };
+}
+
+// Long operation wrapper with progress callbacks
+export async function withProgress(operation, operationName, progressCallback = null) {
+  const startTime = Date.now();
+  
+  try {
+    if (progressCallback) {
+      progressCallback(createProgressUpdate(operationName, 'starting', 0, { startTime }));
+    }
+    
+    const result = await operation();
+    
+    if (progressCallback) {
+      const duration = Date.now() - startTime;
+      progressCallback(createProgressUpdate(operationName, 'completed', 100, { 
+        duration,
+        success: true 
+      }));
+    }
+    
+    return result;
+  } catch (error) {
+    if (progressCallback) {
+      const duration = Date.now() - startTime;
+      progressCallback(createProgressUpdate(operationName, 'failed', -1, { 
+        duration,
+        error: error.message,
+        success: false 
+      }));
+    }
+    throw error;
+  }
+}
+
+// Timeout wrapper with progress updates
+export function withTimeout(promise, timeoutMs, operationName, progressCallback = null) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        if (progressCallback) {
+          progressCallback(createProgressUpdate(operationName, 'timeout', -1, { 
+            timeoutMs,
+            reason: 'Operation exceeded maximum allowed time'
+          }));
+        }
+        reject(errorHandlers.timeoutError(operationName, timeoutMs));
+      }, timeoutMs);
+    })
+  ]);
+}
+
+// Timeout error handler
+errorHandlers.timeoutError = (operationName, timeoutMs) => {
+  return createError(
+    ErrorTypes.TIMEOUT_ERROR,
+    `Operation '${operationName}' timed out after ${timeoutMs}ms`,
+    null,
+    { operation: operationName, timeout: timeoutMs }
+  );
 };

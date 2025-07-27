@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { ErrorTypes, createError, errorHandlers, validators, formatResponse, createSuccessResponse } from '../utils/errors.js';
+import { ErrorTypes, createError, errorHandlers, validators, formatResponse, createSuccessResponse, withProgress, withTimeout, createProgressUpdate } from '../utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,7 +54,7 @@ export class DEVONthinkService {
         const parsed = JSON.parse(stdout.trim());
         // Check if the response has an error field
         if (parsed && parsed.error) {
-          throw new Error(parsed.error);
+          throw errorHandlers.scriptExecutionFailed(scriptName, parsed.error);
         }
         return parsed;
       } catch (e) {
@@ -133,7 +133,15 @@ export class DEVONthinkService {
         resultsReturned: paginatedResults.length
       });
     } catch (error) {
-      throw new Error(`Search failed: ${error.message}`);
+      if (error.error) {
+        // Already a structured error
+        throw error;
+      }
+      throw errorHandlers.scriptExecutionFailed('search', {
+        originalError: error.message,
+        query: query,
+        context: 'Document search operation failed'
+      });
     }
   }
 
@@ -145,7 +153,7 @@ export class DEVONthinkService {
     const result = await this.runAppleScript('read_document', [uuid, format]);
     
     if (result.error) {
-      throw new Error(result.error);
+      throw errorHandlers.documentNotFound(uuid);
     }
     
     // When format is 'metadata', the AppleScript returns the metadata directly
@@ -163,11 +171,15 @@ export class DEVONthinkService {
   }
 
   async updateTags(uuid, tags) {
+    validators.validateUUID(uuid, 'uuid');
+    validators.validateNonEmptyArray(tags, 'tags');
     return await this.runAppleScript('update_tags', [uuid, tags.join(',')]);
   }
 
   async getRelatedDocuments(uuid, limit = 10) {
-    return await this.runAppleScript('get_related', [uuid, limit.toString()]);
+    validators.validateUUID(uuid, 'uuid');
+    const validatedLimit = validators.validateLimit(limit, 10, 100);
+    return await this.runAppleScript('get_related', [uuid, validatedLimit.toString()]);
   }
 
   async createSmartGroup(name, searchQuery, database) {
@@ -176,6 +188,7 @@ export class DEVONthinkService {
   }
 
   async ocrDocument(uuid) {
+    validators.validateUUID(uuid, 'uuid');
     return await this.runAppleScript('ocr_document', [uuid]);
   }
 
@@ -244,10 +257,14 @@ export class DEVONthinkService {
   }
 
   async findConnections(uuid, maxResults = 10) {
-    return await this.runAppleScript('find_connections', [uuid, maxResults.toString()]);
+    validators.validateUUID(uuid, 'uuid');
+    const validatedMaxResults = validators.validateLimit(maxResults, 10, 100);
+    return await this.runAppleScript('find_connections', [uuid, validatedMaxResults.toString()]);
   }
 
   async compareDocuments(uuid1, uuid2) {
+    validators.validateUUID(uuid1, 'uuid1');
+    validators.validateUUID(uuid2, 'uuid2');
     return await this.runAppleScript('compare_documents', [uuid1, uuid2]);
   }
 
@@ -257,27 +274,61 @@ export class DEVONthinkService {
   }
 
   async addToCollection(collectionUUID, documentUUID, notes = '') {
+    validators.validateUUID(collectionUUID, 'collectionUUID');
+    validators.validateUUID(documentUUID, 'documentUUID');
     return await this.runAppleScript('add_to_collection', [collectionUUID, documentUUID, notes]);
   }
 
-  async buildKnowledgeGraph(uuid, maxDepth = 3) {
-    return await this.runAppleScript('build_knowledge_graph', [uuid, maxDepth.toString()]);
+  async buildKnowledgeGraph(uuid, maxDepth = 3, progressCallback = null) {
+    validators.validateUUID(uuid, 'uuid');
+    const validatedDepth = validators.validateLimit(maxDepth, 3, 10);
+    
+    const operationName = 'build_knowledge_graph';
+    
+    return await withProgress(async () => {
+      return await withTimeout(
+        this.runAppleScript('build_knowledge_graph', [uuid, validatedDepth.toString()]),
+        45000, // 45 second timeout for deep graphs
+        operationName,
+        progressCallback
+      );
+    }, operationName, progressCallback);
   }
 
   async findShortestPath(startUUID, targetUUID, maxDepth = 5) {
     return await this.runAppleScript('find_shortest_path', [startUUID, targetUUID, maxDepth.toString()]);
   }
 
-  async detectKnowledgeClusters(searchQuery = '', maxDocuments = 50, minClusterSize = 3) {
+  async detectKnowledgeClusters(searchQuery = '', maxDocuments = 50, minClusterSize = 3, progressCallback = null) {
     // Use native AI classification for clustering instead of manual algorithms
     const args = searchQuery ? [searchQuery, maxDocuments.toString(), minClusterSize.toString()] : ['', maxDocuments.toString(), minClusterSize.toString()];
-    return await this.runAppleScript('detect_knowledge_clusters_native', args);
+    
+    const operationName = 'detect_knowledge_clusters';
+    
+    return await withProgress(async () => {
+      return await withTimeout(
+        this.runAppleScript('detect_knowledge_clusters_native', args),
+        60000, // 60 second timeout for large clustering operations
+        operationName,
+        progressCallback
+      );
+    }, operationName, progressCallback);
   }
 
-  async automateResearch(workflowType, queryOrUUID) {
+  async automateResearch(workflowType, queryOrUUID, progressCallback = null) {
     // Pass workflow type and query/UUID to the AppleScript
     const args = [workflowType, queryOrUUID];
-    return await this.runAppleScript('automate_research', args);
+    
+    const operationName = `automate_research_${workflowType}`;
+    
+    return await withProgress(async () => {
+      return await withTimeout(
+        this.runAppleScript('automate_research', args),
+        90000, // 90 second timeout for comprehensive research workflows
+        operationName,
+        progressCallback
+      );
+    }, operationName, progressCallback);
   }
 
   async automateResearchOptimized(queryOrUUID, maxResults = 50) {
@@ -285,16 +336,31 @@ export class DEVONthinkService {
   }
 
   async analyzeDocument(uuid, optimized = false) {
+    validators.validateUUID(uuid, 'uuid');
     const scriptName = optimized ? 'document_analysis_optimized' : 'document_analysis';
     return await this.runAppleScript(scriptName, [uuid]);
   }
 
-  async analyzeDocumentSimilarity(uuids) {
-    // Use optimized version to prevent timeouts
-    return await this.runAppleScript('analyze_document_similarity_optimized', uuids);
+  async analyzeDocumentSimilarity(uuids, progressCallback = null) {
+    // Validate UUIDs array
+    validators.validateNonEmptyArray(uuids, 'uuids');
+    uuids.forEach((uuid, index) => {
+      validators.validateUUID(uuid, `uuids[${index}]`);
+    });
+    
+    const operationName = 'analyze_document_similarity';
+    
+    return await withProgress(async () => {
+      return await withTimeout(
+        this.runAppleScript('analyze_document_similarity_optimized', uuids),
+        20000, // 20 second timeout
+        operationName,
+        progressCallback
+      );
+    }, operationName, progressCallback);
   }
 
-  async synthesizeDocuments(documentUUIDs, synthesisType = 'summary') {
+  async synthesizeDocuments(documentUUIDs, synthesisType = 'summary', progressCallback = null) {
     // Validate documentUUIDs array
     validators.validateNonEmptyArray(documentUUIDs, 'documentUUIDs');
     
@@ -303,51 +369,99 @@ export class DEVONthinkService {
       validators.validateUUID(uuid, `documentUUIDs[${index}]`);
     });
     
-    // Use optimized version for better performance
-    const args = [synthesisType, ...documentUUIDs];
+    const operationName = `synthesize_documents_${synthesisType}`;
     
-    // Try optimized version first
-    try {
-      const result = await this.runAppleScript('synthesize_documents_optimized', args);
-      // Check if we got valid results
-      const parsed = JSON.parse(result);
-      if (parsed.document_count > 0 && parsed.document_titles && parsed.document_titles.length > 0) {
-        return result;
+    return await withProgress(async () => {
+      // Use optimized version for better performance
+      const args = [synthesisType, ...documentUUIDs];
+      
+      if (progressCallback) {
+        progressCallback(createProgressUpdate(operationName, 'attempting_optimized', 25, { 
+          documentCount: documentUUIDs.length,
+          synthesisType 
+        }));
       }
-      // If no documents processed, fall back to native version
-      console.log('Optimized version returned no documents, trying native version');
-    } catch (error) {
-      console.warn('Optimized synthesis failed:', error.message);
-    }
-    
-    // Fallback to native version
-    return await this.runAppleScript('synthesize_documents_native', args);
+      
+      // Try optimized version first
+      try {
+        const result = await withTimeout(
+          this.runAppleScript('synthesize_documents_optimized', args),
+          15000, // 15 second timeout for optimized version
+          `${operationName}_optimized`,
+          progressCallback
+        );
+        
+        // Check if we got valid results
+        const parsed = JSON.parse(result);
+        if (parsed.document_count > 0 && parsed.document_titles && parsed.document_titles.length > 0) {
+          if (progressCallback) {
+            progressCallback(createProgressUpdate(operationName, 'optimized_success', 100, { 
+              method: 'optimized',
+              documentsProcessed: parsed.document_count 
+            }));
+          }
+          return result;
+        }
+        // If no documents processed, fall back to native version
+        console.log('Optimized version returned no documents, trying native version');
+        
+        if (progressCallback) {
+          progressCallback(createProgressUpdate(operationName, 'fallback_to_native', 50, { 
+            reason: 'optimized_returned_no_documents' 
+          }));
+        }
+      } catch (error) {
+        console.warn('Optimized synthesis failed:', error.message);
+        
+        if (progressCallback) {
+          progressCallback(createProgressUpdate(operationName, 'fallback_to_native', 50, { 
+            reason: 'optimized_failed',
+            error: error.message 
+          }));
+        }
+      }
+      
+      // Fallback to native version
+      return await withTimeout(
+        this.runAppleScript('synthesize_documents_native', args),
+        30000, // 30 second timeout for native version
+        `${operationName}_native`,
+        progressCallback
+      );
+    }, operationName, progressCallback);
   }
 
   async extractThemes(documentUUIDs) {
-    // Ensure documentUUIDs is an array
-    if (!Array.isArray(documentUUIDs)) {
-      throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
-    }
+    // Validate documentUUIDs array
+    validators.validateNonEmptyArray(documentUUIDs, 'documentUUIDs');
+    // Validate each UUID
+    documentUUIDs.forEach((uuid, index) => {
+      validators.validateUUID(uuid, `documentUUIDs[${index}]`);
+    });
     // Use native AI classification instead of manual word frequency
     return await this.runAppleScript('extract_themes', documentUUIDs);
   }
 
   async classifyDocument(uuid) {
+    validators.validateUUID(uuid, 'uuid');
     // Use DEVONthink's native AI classification
     return await this.runAppleScript('classify_document', [uuid]);
   }
 
   async getSimilarDocuments(uuid, limit = 10) {
+    validators.validateUUID(uuid, 'uuid');
+    const validatedLimit = validators.validateLimit(limit, 10, 100);
     // Use DEVONthink's native AI to find similar documents
-    return await this.runAppleScript('get_similar_documents', [uuid, limit.toString()]);
+    return await this.runAppleScript('get_similar_documents', [uuid, validatedLimit.toString()]);
   }
 
   async createMultiLevelSummary(documentUUIDs, summaryLevel = 'brief') {
-    // Ensure documentUUIDs is an array
-    if (!Array.isArray(documentUUIDs)) {
-      throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
-    }
+    // Validate documentUUIDs array
+    validators.validateNonEmptyArray(documentUUIDs, 'documentUUIDs');
+    // Validate each UUID
+    documentUUIDs.forEach((uuid, index) => {
+      validators.validateUUID(uuid, `documentUUIDs[${index}]`);
+    });
     // Use native AI-enhanced version
     const args = [summaryLevel, ...documentUUIDs];
     return await this.runAppleScript('create_multi_level_summary_native', args);
