@@ -365,6 +365,294 @@ async function main() {
         }
       }
     );
+
+    // Knowledge Graph Features
+    server.tool(
+      'build_knowledge_graph',
+      'Build a knowledge graph showing document relationships with depth control',
+      {
+        uuid: z.string().describe('Starting document UUID'),
+        maxDepth: z.number().optional().describe('Maximum traversal depth (default: 3)')
+      },
+      async ({ uuid, maxDepth = 3 }) => {
+        logger.info(`Building knowledge graph from document: ${uuid} with depth: ${maxDepth}`);
+        try {
+          const graph = await devonthink.buildKnowledgeGraph(uuid, maxDepth);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(graph, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'find_shortest_path',
+      'Find the shortest connection path between two documents',
+      {
+        startUUID: z.string().describe('Starting document UUID'),
+        targetUUID: z.string().describe('Target document UUID'),
+        maxDepth: z.number().optional().describe('Maximum search depth (default: 5)')
+      },
+      async ({ startUUID, targetUUID, maxDepth = 5 }) => {
+        logger.info(`Finding shortest path from ${startUUID} to ${targetUUID}`);
+        try {
+          const path = await devonthink.findShortestPath(startUUID, targetUUID, maxDepth);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(path, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'detect_knowledge_clusters',
+      'Detect clusters of related documents based on tags and connections',
+      {
+        searchQuery: z.string().optional().describe('Search query to find documents (empty = use current selection)'),
+        maxDocuments: z.number().optional().describe('Maximum documents to analyze (default: 50)'),
+        minClusterSize: z.number().optional().describe('Minimum cluster size (default: 3)')
+      },
+      async ({ searchQuery = '', maxDocuments = 50, minClusterSize = 3 }) => {
+        logger.info(`Detecting knowledge clusters for: ${searchQuery || 'current selection'}`);
+        try {
+          const clusters = await devonthink.detectKnowledgeClusters(searchQuery, maxDocuments, minClusterSize);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(clusters, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    // Phase 2: Research Automation
+    server.tool(
+      'automate_research',
+      'Run automated research workflows to explore topics and organize findings',
+      {
+        workflowType: z.enum(['explore_topic', 'expand_research', 'organize_findings']).describe('Type of research workflow to run'),
+        queryOrUUID: z.string().describe('Search query for explore/organize, or document UUID for expand')
+      },
+      async ({ workflowType, queryOrUUID }) => {
+        logger.info(`Running research workflow: ${workflowType} with ${queryOrUUID}`);
+        try {
+          const result = await devonthink.automateResearch(workflowType, queryOrUUID);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    // Optimized organize findings workflow
+    server.tool(
+      'organize_findings_optimized',
+      'Organize search results by relevance with performance optimization',
+      {
+        searchQuery: z.string().describe('Search query to organize results for'),
+        maxResults: z.number().optional().describe('Maximum results to process (default: 50)')
+      },
+      async ({ searchQuery, maxResults = 50 }) => {
+        logger.info(`Organizing findings (optimized) for: ${searchQuery} with max ${maxResults} results`);
+        try {
+          const result = await devonthink.automateResearchOptimized(searchQuery, maxResults);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    // Phase 3: Document Intelligence
+    server.tool(
+      'analyze_document',
+      'Analyze document complexity, readability, and extract key information',
+      {
+        uuid: z.string().describe('Document UUID')
+      },
+      async ({ uuid }) => {
+        logger.info(`Analyzing document: ${uuid}`);
+        try {
+          const analysis = await devonthink.analyzeDocument(uuid);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'analyze_document_similarity',
+      'Compare multiple documents for similarity based on content and metadata',
+      {
+        uuids: z.array(z.string()).min(2).describe('Array of document UUIDs to compare (minimum 2)')
+      },
+      async ({ uuids }) => {
+        logger.info(`Analyzing similarity between ${uuids.length} documents`);
+        try {
+          const analysis = await devonthink.analyzeDocumentSimilarity(uuids);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    // Phase 4: Knowledge Synthesis
+    server.tool(
+      'synthesize_documents',
+      'Create intelligent synthesis from multiple documents',
+      {
+        documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to synthesize'),
+        synthesisType: z.enum(['summary', 'consensus', 'insights']).optional().describe('Type of synthesis (default: summary)')
+      },
+      async ({ documentUUIDs, synthesisType = 'summary' }) => {
+        logger.info(`Synthesizing ${documentUUIDs.length} documents with type: ${synthesisType}`);
+        try {
+          const synthesis = await devonthink.synthesizeDocuments(documentUUIDs, synthesisType);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(synthesis, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'extract_themes',
+      'Extract common themes and topics from document collections',
+      {
+        documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to analyze for themes')
+      },
+      async ({ documentUUIDs }) => {
+        logger.info(`Extracting themes from ${documentUUIDs.length} documents`);
+        try {
+          const themes = await devonthink.extractThemes(documentUUIDs);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(themes, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'create_multi_level_summary',
+      'Create summaries at different levels of detail',
+      {
+        documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to summarize'),
+        summaryLevel: z.enum(['brief', 'detailed', 'full']).optional().describe('Level of detail (default: brief)')
+      },
+      async ({ documentUUIDs, summaryLevel = 'brief' }) => {
+        logger.info(`Creating ${summaryLevel} summary for ${documentUUIDs.length} documents`);
+        try {
+          const summary = await devonthink.createMultiLevelSummary(documentUUIDs, summaryLevel);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'track_topic_evolution',
+      'Track how a topic has evolved over time',
+      {
+        topic: z.string().describe('Topic or keyword to track'),
+        timeRange: z.enum(['week', 'month', 'year', 'all']).optional().describe('Time range to analyze (default: month)')
+      },
+      async ({ topic, timeRange = 'month' }) => {
+        logger.info(`Tracking evolution of topic: ${topic} over ${timeRange}`);
+        try {
+          const evolution = await devonthink.trackTopicEvolution(topic, timeRange);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(evolution, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'create_knowledge_timeline',
+      'Create a chronological timeline of documents showing knowledge evolution',
+      {
+        documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to create timeline from')
+      },
+      async ({ documentUUIDs }) => {
+        logger.info(`Creating knowledge timeline from ${documentUUIDs.length} documents`);
+        try {
+          const timeline = await devonthink.createKnowledgeTimeline(documentUUIDs);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(timeline, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'identify_trends',
+      'Identify trending topics in recent documents',
+      {
+        databaseName: z.string().optional().describe('Specific database to analyze (optional, searches all if not provided)')
+      },
+      async ({ databaseName = '' }) => {
+        logger.info(`Identifying trends in ${databaseName || 'all databases'}`);
+        try {
+          const trends = await devonthink.identifyTrends(databaseName);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(trends, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
     
     // Use STDIO transport
     const transport = new StdioServerTransport();

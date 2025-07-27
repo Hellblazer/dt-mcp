@@ -131,4 +131,63 @@ export class DEVONthinkService {
   async addToCollection(collectionUUID, documentUUID, notes = '') {
     return await this.runAppleScript('add_to_collection', [collectionUUID, documentUUID, notes]);
   }
+
+  async buildKnowledgeGraph(uuid, maxDepth = 3) {
+    return await this.runAppleScript('build_knowledge_graph', [uuid, maxDepth.toString()]);
+  }
+
+  async findShortestPath(startUUID, targetUUID, maxDepth = 5) {
+    return await this.runAppleScript('find_shortest_path', [startUUID, targetUUID, maxDepth.toString()]);
+  }
+
+  async detectKnowledgeClusters(searchQuery = '', maxDocuments = 50, minClusterSize = 3) {
+    const args = searchQuery ? [searchQuery, maxDocuments.toString(), minClusterSize.toString()] : ['', maxDocuments.toString(), minClusterSize.toString()];
+    return await this.runAppleScript('detect_knowledge_clusters', args);
+  }
+
+  async automateResearch(workflowType, queryOrUUID) {
+    return await this.runAppleScript('automate_research', [workflowType, queryOrUUID]);
+  }
+
+  async automateResearchOptimized(queryOrUUID, maxResults = 50) {
+    return await this.runAppleScript('automate_research_optimized', ['organize_findings_optimized', queryOrUUID, maxResults.toString()]);
+  }
+
+  async analyzeDocument(uuid, optimized = false) {
+    const scriptName = optimized ? 'document_analysis_optimized' : 'document_analysis';
+    return await this.runAppleScript(scriptName, [uuid]);
+  }
+
+  async analyzeDocumentSimilarity(uuids) {
+    return await this.runAppleScript('analyze_document_similarity', uuids);
+  }
+
+  async synthesizeDocuments(documentUUIDs, synthesisType = 'summary') {
+    const args = ['synthesize', synthesisType, ...documentUUIDs];
+    return await this.runAppleScript('knowledge_synthesis', args);
+  }
+
+  async extractThemes(documentUUIDs) {
+    const args = ['extract_themes', ...documentUUIDs];
+    return await this.runAppleScript('knowledge_synthesis', args);
+  }
+
+  async createMultiLevelSummary(documentUUIDs, summaryLevel = 'brief') {
+    const args = ['create_summary', summaryLevel, ...documentUUIDs];
+    return await this.runAppleScript('knowledge_synthesis', args);
+  }
+
+  async trackTopicEvolution(topic, timeRange = 'month') {
+    return await this.runAppleScript('track_knowledge_evolution', ['evolution', topic, timeRange]);
+  }
+
+  async createKnowledgeTimeline(documentUUIDs) {
+    const args = ['timeline', ...documentUUIDs];
+    return await this.runAppleScript('track_knowledge_evolution', args);
+  }
+
+  async identifyTrends(databaseName = '') {
+    const args = ['trends', databaseName];
+    return await this.runAppleScript('track_knowledge_evolution', args);
+  }
 }

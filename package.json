@@ -1,7 +1,7 @@
 {
   "name": "devonthink-mcp-server",
-  "version": "1.0.0",
-  "description": "MCP server for DEVONthink integration",
+  "version": "2.0.0",
+  "description": "Comprehensive MCP server for DEVONthink integration with 25+ AI-powered tools for knowledge management, research automation, and document intelligence",
   "main": "server.js",
   "publishConfig": {
     "access": "public"
@@ -10,16 +10,30 @@
     "devonthink-mcp": "./server.js"
   },
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "darwin"
+  ],
   "scripts": {
     "start": "node server.js",
-    "test": "npm run test:scripts",
+    "dev": "LOG_LEVEL=DEBUG node server.js",
+    "test": "npm run test:scripts && npm run test:comprehensive",
     "test:scripts": "osascript scripts/test/test_devonthink.applescript",
+    "test:comprehensive": "python3 test_comprehensive.py",
     "test:mcp": "npx @modelcontextprotocol/inspector server.js",
-    "dev": "LOG_LEVEL=DEBUG node server.js"
+    "test:tool": "node test_mcp_tool.js",
+    "lint": "npx eslint server.js src/ --ext .js || echo 'ESLint not configured'",
+    "validate": "npm run lint && npm run test:scripts",
+    "docs": "echo 'Documentation available in README.md'"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.1",
     "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
   },
   "repository": {
     "type": "git",
@@ -28,14 +42,39 @@
   "keywords": [
     "devonthink",
     "applescript",
-    "mcp-server",
+    "mcp-server", 
     "mcp",
-    "document-management"
+    "model-context-protocol",
+    "document-management",
+    "knowledge-management",
+    "research-automation",
+    "ai-tools",
+    "claude-desktop",
+    "macos",
+    "document-intelligence",
+    "knowledge-synthesis",
+    "research-tools"
   ],
-  "author": "hal.hildebrand",
+  "author": {
+    "name": "hal.hildebrand",
+    "url": "https://github.com/hal.hildebrand"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/hal.hildebrand/dt-mcp/issues"
   },
-  "homepage": "https://github.com/hal.hildebrand/dt-mcp#readme"
+  "homepage": "https://github.com/hal.hildebrand/dt-mcp#readme",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/hal.hildebrand"
+  },
+  "files": [
+    "server.js",
+    "src/",
+    "scripts/",
+    "test_mcp_tool.js",
+    "README.md",
+    "LICENSE",
+    "CLAUDE.md"
+  ]
 }
