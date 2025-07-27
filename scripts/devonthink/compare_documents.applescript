@@ -1,76 +1,91 @@
--- Compare two documents for similarity
--- Returns common tags, word count comparison, and basic similarity
+-- Compare documents using DEVONthink's native AI classification
+-- Replaces manual Jaccard similarity with AI classification overlap
 
 on run argv
     if (count of argv) < 2 then
-        return "{\"error\":\"Missing document UUIDs\"}"
+        return "{\"error\":\"Missing required parameters: at least 2 document UUIDs\"}"
     end if
-    
-    set uuid1 to item 1 of argv
-    set uuid2 to item 2 of argv
     
     tell application id "DNtp"
         try
-            set doc1 to get record with uuid uuid1
-            set doc2 to get record with uuid uuid2
-            
-            if doc1 is missing value or doc2 is missing value then
-                return "{\"error\":\"One or both documents not found\"}"
-            end if
-            
-            -- Get document properties
-            set name1 to name of doc1
-            set name2 to name of doc2
-            set tags1 to tags of doc1
-            set tags2 to tags of doc2
-            set text1 to plain text of doc1
-            set text2 to plain text of doc2
-            set wordCount1 to count words of text1
-            set wordCount2 to count words of text2
-            
-            -- Find common tags
-            set commonTags to {}
-            repeat with tag1 in tags1
-                if tags2 contains tag1 then
-                    set end of commonTags to tag1 as string
-                end if
+            -- Collect document UUIDs
+            set documentUUIDs to {}
+            repeat with i from 1 to count of argv
+                set end of documentUUIDs to item i of argv
             end repeat
             
-            -- Calculate basic similarity metrics
-            set tagSimilarity to 0.0
-            if (count of tags1) > 0 or (count of tags2) > 0 then
-                set tagSimilarity to (count of commonTags) * 2.0 / ((count of tags1) + (count of tags2))
+            if (count of documentUUIDs) < 2 then
+                return "{\"error\":\"Need at least 2 documents to compare\"}"
             end if
+            
+            -- Get AI classifications for all documents
+            set documentClassifications to {}
+            set documentTitles to {}
+            
+            repeat with docUUID in documentUUIDs
+                try
+                    set theRecord to get record with uuid docUUID
+                    if theRecord is not missing value then
+                        set docTitle to name of theRecord
+                        set classifications to classify record theRecord
+                        
+                        -- Extract top classification groups (themes)
+                        set docThemes to {}
+                        repeat with j from 1 to 10 -- Consider top 10 classifications
+                            if j > (count of classifications) then exit repeat
+                            
+                            set suggestion to item j of classifications
+                            set groupName to name of suggestion
+                            set groupScore to score of suggestion
+                            
+                            -- Skip generic groups
+                            if groupName is not in {"Inbox", "old inbox", "New Group", "Unfiled", "Trash", ""} then
+                                set end of docThemes to {groupName, groupScore}
+                            end if
+                        end repeat
+                        
+                        set end of documentClassifications to docThemes
+                        set end of documentTitles to docTitle
+                    else
+                        set end of documentClassifications to {}
+                        set end of documentTitles to "Unknown Document"
+                    end if
+                on error
+                    set end of documentClassifications to {}
+                    set end of documentTitles to "Error Loading Document"
+                end try
+            end repeat
+            
+            -- Calculate pairwise similarities using classification overlap
+            set similarities to {}
+            repeat with i from 1 to (count of documentClassifications) - 1
+                repeat with j from (i + 1) to count of documentClassifications
+                    set doc1Themes to item i of documentClassifications
+                    set doc2Themes to item j of documentClassifications
+                    set doc1Title to item i of documentTitles
+                    set doc2Title to item j of documentTitles
+                    
+                    -- Calculate AI classification overlap similarity
+                    set similarity to my calculateClassificationSimilarity(doc1Themes, doc2Themes)
+                    
+                    set similarityRecord to "{"
+                    set similarityRecord to similarityRecord & "\"document1\":\"" & my escapeString(doc1Title) & "\","
+                    set similarityRecord to similarityRecord & "\"document2\":\"" & my escapeString(doc2Title) & "\","
+                    set similarityRecord to similarityRecord & "\"similarity\":" & similarity & ","
+                    set similarityRecord to similarityRecord & "\"method\":\"ai_classification_overlap\""
+                    set similarityRecord to similarityRecord & "}"
+                    
+                    set end of similarities to similarityRecord
+                end repeat
+            end repeat
             
             -- Build JSON response
             set jsonOutput to "{"
-            set jsonOutput to jsonOutput & "\"document1\":{"
-            set jsonOutput to jsonOutput & "\"uuid\":\"" & uuid1 & "\","
-            set jsonOutput to jsonOutput & "\"name\":\"" & my escapeString(name1) & "\","
-            set jsonOutput to jsonOutput & "\"wordCount\":" & wordCount1 & ","
-            set jsonOutput to jsonOutput & "\"tagCount\":" & (count of tags1)
-            set jsonOutput to jsonOutput & "},"
-            
-            set jsonOutput to jsonOutput & "\"document2\":{"
-            set jsonOutput to jsonOutput & "\"uuid\":\"" & uuid2 & "\","
-            set jsonOutput to jsonOutput & "\"name\":\"" & my escapeString(name2) & "\","
-            set jsonOutput to jsonOutput & "\"wordCount\":" & wordCount2 & ","
-            set jsonOutput to jsonOutput & "\"tagCount\":" & (count of tags2)
-            set jsonOutput to jsonOutput & "},"
-            
-            set jsonOutput to jsonOutput & "\"comparison\":{"
-            set jsonOutput to jsonOutput & "\"commonTags\":["
-            
-            repeat with i from 1 to count of commonTags
-                set jsonOutput to jsonOutput & "\"" & (item i of commonTags) & "\""
-                if i < count of commonTags then set jsonOutput to jsonOutput & ","
-            end repeat
-            
-            set jsonOutput to jsonOutput & "],"
-            set jsonOutput to jsonOutput & "\"commonTagCount\":" & (count of commonTags) & ","
-            set jsonOutput to jsonOutput & "\"tagSimilarity\":" & tagSimilarity & ","
-            set jsonOutput to jsonOutput & "\"wordCountDifference\":" & (wordCount1 - wordCount2)
-            set jsonOutput to jsonOutput & "}}"
+            set jsonOutput to jsonOutput & "\"documentCount\":" & (count of documentUUIDs) & ","
+            set jsonOutput to jsonOutput & "\"comparisons\":[" & my joinList(similarities, ",") & "],"
+            set jsonOutput to jsonOutput & "\"method\":\"devonthink_ai_classification\","
+            set jsonOutput to jsonOutput & "\"status\":\"success\""
+            set jsonOutput to jsonOutput & "}"
             
             return jsonOutput
             
@@ -80,40 +95,85 @@ on run argv
     end tell
 end run
 
--- Utility function to escape special characters
+-- Calculate similarity based on AI classification overlap
+on calculateClassificationSimilarity(themes1, themes2)
+    if (count of themes1) = 0 or (count of themes2) = 0 then
+        return 0.0
+    end if
+    
+    -- Extract theme names for comparison
+    set names1 to {}
+    set names2 to {}
+    set scores1 to {}
+    set scores2 to {}
+    
+    repeat with themeRecord in themes1
+        set end of names1 to item 1 of themeRecord
+        set end of scores1 to item 2 of themeRecord
+    end repeat
+    
+    repeat with themeRecord in themes2
+        set end of names2 to item 1 of themeRecord
+        set end of scores2 to item 2 of themeRecord
+    end repeat
+    
+    -- Calculate weighted overlap similarity
+    set sharedScore to 0.0
+    set totalScore1 to 0.0
+    set totalScore2 to 0.0
+    
+    -- Sum all scores for normalization
+    repeat with score in scores1
+        set totalScore1 to totalScore1 + score
+    end repeat
+    
+    repeat with score in scores2
+        set totalScore2 to totalScore2 + score
+    end repeat
+    
+    -- Find shared themes and sum their scores
+    repeat with i from 1 to count of names1
+        set theme1 to item i of names1
+        set score1 to item i of scores1
+        
+        repeat with j from 1 to count of names2
+            set theme2 to item j of names2
+            set score2 to item j of scores2
+            
+            if theme1 = theme2 then
+                -- Use minimum score for shared theme
+                set minScore to score1
+                if score2 < minScore then set minScore to score2
+                set sharedScore to sharedScore + minScore
+                exit repeat
+            end if
+        end repeat
+    end repeat
+    
+    -- Calculate Jaccard-like similarity with weighted scores
+    set unionScore to totalScore1 + totalScore2 - sharedScore
+    if unionScore > 0 then
+        return sharedScore / unionScore
+    else
+        return 0.0
+    end if
+end calculateClassificationSimilarity
+
+-- Join list items with separator
+on joinList(itemList, separator)
+    set AppleScript's text item delimiters to separator
+    set result to itemList as string
+    set AppleScript's text item delimiters to ""
+    return result
+end joinList
+
+-- Escape special characters for JSON
 on escapeString(inputString)
     set inputString to inputString as string
-    set AppleScript's text item delimiters to "\\"
-    set textItems to text items of inputString
-    set AppleScript's text item delimiters to "\\\\"
-    set inputString to textItems as text
-    
     set AppleScript's text item delimiters to "\""
     set textItems to text items of inputString
     set AppleScript's text item delimiters to "\\\""
-    set inputString to textItems as text
-    
-    set AppleScript's text item delimiters to "/"
-    set textItems to text items of inputString
-    set AppleScript's text item delimiters to "\\/"
-    set inputString to textItems as text
-    
-    set AppleScript's text item delimiters to ASCII character 10
-    set textItems to text items of inputString
-    set AppleScript's text item delimiters to "\\n"
-    set inputString to textItems as text
-    
-    set AppleScript's text item delimiters to ASCII character 13
-    set textItems to text items of inputString
-    set AppleScript's text item delimiters to "\\r"
-    set inputString to textItems as text
-    
-    set AppleScript's text item delimiters to ASCII character 9
-    set textItems to text items of inputString
-    set AppleScript's text item delimiters to "\\t"
-    set inputString to textItems as text
-    
+    set inputString to textItems as string
     set AppleScript's text item delimiters to ""
-    
     return inputString
 end escapeString

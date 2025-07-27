@@ -31,7 +31,11 @@ export class DEVONthinkService {
     // Check if DEVONthink is running first
     await this.ensureDEVONthinkRunning();
     const scriptPath = path.join(this.scriptsPath, `${scriptName}.applescript`);
-    const escapedArgs = args.map(arg => `"${arg.replace(/"/g, '\\"')}"`).join(' ');
+    const escapedArgs = args.map(arg => {
+      // Convert to string and handle undefined/null
+      const argStr = String(arg || '');
+      return `"${argStr.replace(/"/g, '\\"')}"`;
+    }).join(' ');
     const command = `osascript "${scriptPath}" ${escapedArgs}`;
 
     try {
@@ -68,7 +72,9 @@ export class DEVONthinkService {
       throw new Error(result.error);
     }
     
-    return includeContent ? result : result.metadata;
+    // When format is 'metadata', the AppleScript returns the metadata directly
+    // When format is 'full', it returns an object with metadata and content properties
+    return includeContent ? result : (result.metadata || result);
   }
 
   async createDocument(name, content, type = 'markdown', groupPath) {
@@ -141,19 +147,14 @@ export class DEVONthinkService {
   }
 
   async detectKnowledgeClusters(searchQuery = '', maxDocuments = 50, minClusterSize = 3) {
+    // Use native AI classification for clustering instead of manual algorithms
     const args = searchQuery ? [searchQuery, maxDocuments.toString(), minClusterSize.toString()] : ['', maxDocuments.toString(), minClusterSize.toString()];
-    return await this.runAppleScript('detect_knowledge_clusters', args);
+    return await this.runAppleScript('detect_knowledge_clusters_native', args);
   }
 
-  async automateResearch(topic, database = null, maxResults = 50) {
-    // For the MCP server, we use 'explore_topic' workflow with the topic as query
-    const args = ['explore_topic', topic];
-    if (database) {
-      args.push(database);
-    }
-    if (maxResults) {
-      args.push(maxResults.toString());
-    }
+  async automateResearch(workflowType, queryOrUUID) {
+    // Pass workflow type and query/UUID to the AppleScript
+    const args = [workflowType, queryOrUUID];
     return await this.runAppleScript('automate_research', args);
   }
 
@@ -171,16 +172,39 @@ export class DEVONthinkService {
   }
 
   async synthesizeDocuments(documentUUIDs, synthesisType = 'summary') {
-    const args = ['synthesize', synthesisType, ...documentUUIDs];
-    return await this.runAppleScript('knowledge_synthesis', args);
+    // Ensure documentUUIDs is an array
+    if (!Array.isArray(documentUUIDs)) {
+      throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
+    }
+    // Use native AI classification for synthesis instead of manual word frequency
+    const args = [synthesisType, ...documentUUIDs];
+    return await this.runAppleScript('synthesize_documents_native', args);
   }
 
   async extractThemes(documentUUIDs) {
-    const args = ['extract_themes', ...documentUUIDs];
-    return await this.runAppleScript('knowledge_synthesis', args);
+    // Ensure documentUUIDs is an array
+    if (!Array.isArray(documentUUIDs)) {
+      throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
+    }
+    // Use native AI classification instead of manual word frequency
+    return await this.runAppleScript('extract_themes', documentUUIDs);
+  }
+
+  async classifyDocument(uuid) {
+    // Use DEVONthink's native AI classification
+    return await this.runAppleScript('classify_document', [uuid]);
+  }
+
+  async getSimilarDocuments(uuid, limit = 10) {
+    // Use DEVONthink's native AI to find similar documents
+    return await this.runAppleScript('get_similar_documents', [uuid, limit.toString()]);
   }
 
   async createMultiLevelSummary(documentUUIDs, summaryLevel = 'brief') {
+    // Ensure documentUUIDs is an array
+    if (!Array.isArray(documentUUIDs)) {
+      throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
+    }
     const args = ['create_summary', summaryLevel, ...documentUUIDs];
     return await this.runAppleScript('knowledge_synthesis', args);
   }
@@ -197,5 +221,17 @@ export class DEVONthinkService {
   async identifyTrends(databaseName = '') {
     const args = ['trends', databaseName];
     return await this.runAppleScript('track_knowledge_evolution', args);
+  }
+
+  async advancedSearch(query, database = '', searchIn = 'all', maxResults = 100, sortBy = 'relevance', searchScope = 'content') {
+    // Use DEVONthink's full search syntax with advanced operators and filtering
+    const args = [query, database, searchIn, maxResults.toString(), sortBy, searchScope];
+    return await this.runAppleScript('advanced_search', args);
+  }
+
+  async listSmartGroups(database = '') {
+    // List all smart groups, optionally filtered by database
+    const args = database ? [database] : [];
+    return await this.runAppleScript('list_smart_groups', args);
   }
 }

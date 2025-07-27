@@ -65,7 +65,7 @@ async function main() {
         break;
         
       case 'detect_knowledge_clusters':
-        result = await devonthink.detectKnowledgeClusters(params.database, params.minClusterSize);
+        result = await devonthink.detectKnowledgeClusters(params.searchQuery, params.maxDocuments, params.minClusterSize);
         break;
         
       case 'find_connections':
@@ -78,7 +78,7 @@ async function main() {
       
       // Research automation (Phase 2)
       case 'automate_research':
-        result = await devonthink.automateResearch(params.topic, params.database, params.maxResults);
+        result = await devonthink.automateResearch(params.workflowType, params.queryOrUUID);
         break;
         
       case 'organize_findings_optimized':
@@ -108,27 +108,35 @@ async function main() {
       
       // Knowledge synthesis (Phase 4)
       case 'synthesize_documents':
-        result = await devonthink.synthesizeDocuments(params.uuids, params.synthesisType);
+        result = await devonthink.synthesizeDocuments(params.documentUUIDs, params.synthesisType);
         break;
         
       case 'extract_themes':
-        result = await devonthink.extractThemes(params.database, params.timeRange);
+        result = await devonthink.extractThemes(params.documentUUIDs);
+        break;
+        
+      case 'classify_document':
+        result = await devonthink.classifyDocument(params.uuid);
+        break;
+        
+      case 'get_similar_documents':
+        result = await devonthink.getSimilarDocuments(params.uuid, params.limit);
         break;
         
       case 'identify_trends':
-        result = await devonthink.identifyTrends(params.database, params.timeWindow);
+        result = await devonthink.identifyTrends(params.databaseName);
         break;
         
       case 'create_multi_level_summary':
-        result = await devonthink.createMultiLevelSummary(params.uuids, params.levels);
+        result = await devonthink.createMultiLevelSummary(params.documentUUIDs, params.summaryLevel);
         break;
         
       case 'track_topic_evolution':
-        result = await devonthink.trackTopicEvolution(params.topic, params.startDate, params.endDate);
+        result = await devonthink.trackTopicEvolution(params.topic, params.timeRange);
         break;
         
       case 'create_knowledge_timeline':
-        result = await devonthink.createKnowledgeTimeline(params.database, params.startDate, params.endDate);
+        result = await devonthink.createKnowledgeTimeline(params.documentUUIDs);
         break;
         
       default:

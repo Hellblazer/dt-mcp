@@ -52,14 +52,57 @@ on run argv
                 set avgWordLength to 0
             end if
             
-            -- Count sentences (simplified approach)
+            -- Count sentences with improved PDF handling
             set sentenceCount to 0
-            set sentenceEnders to {".", "!", "?"}
-            repeat with ender in sentenceEnders
-                set AppleScript's text item delimiters to ender
-                set sentenceCount to sentenceCount + (count of text items of docText) - 1
+            set cleanedText to docText
+            
+            -- First, normalize the text by removing extra whitespace and line breaks
+            set AppleScript's text item delimiters to {ASCII character 10, ASCII character 13}
+            set textLines to text items of cleanedText
+            set AppleScript's text item delimiters to " "
+            set cleanedText to textLines as text
+            
+            -- Remove multiple spaces
+            repeat while cleanedText contains "  "
+                set AppleScript's text item delimiters to "  "
+                set textParts to text items of cleanedText
+                set AppleScript's text item delimiters to " "
+                set cleanedText to textParts as text
             end repeat
-            set AppleScript's text item delimiters to ""
+            
+            -- Count sentences more accurately
+            set sentenceEnders to {".", "!", "?"}
+            set sentences to {}
+            set currentSentence to ""
+            
+            repeat with i from 1 to length of cleanedText
+                set currentChar to character i of cleanedText
+                set currentSentence to currentSentence & currentChar
+                
+                if currentChar is in sentenceEnders then
+                    -- Check if this is really a sentence end (not abbreviation)
+                    set isEnd to true
+                    if i < length of cleanedText then
+                        set nextChar to character (i + 1) of cleanedText
+                        -- If followed by lowercase or comma, it's probably not a sentence end
+                        if nextChar is not " " and nextChar is not (ASCII character 10) and nextChar is not (ASCII character 13) then
+                            set isEnd to false
+                        end if
+                    end if
+                    
+                    if isEnd and length of currentSentence > 10 then
+                        set end of sentences to currentSentence
+                        set sentenceCount to sentenceCount + 1
+                        set currentSentence to ""
+                    end if
+                end if
+            end repeat
+            
+            -- Add any remaining sentence
+            if length of currentSentence > 10 then
+                set end of sentences to currentSentence
+                set sentenceCount to sentenceCount + 1
+            end if
             
             if sentenceCount = 0 then set sentenceCount to 1
             
@@ -100,43 +143,48 @@ on run argv
                 set readabilityLevel to "Very Difficult"
             end if
             
-            -- Extract key sentences (first and last of significant paragraphs)
+            -- Extract key sentences from the parsed sentences
             set keySentences to {}
-            set paragraphList to paragraphs of docText
-            set significantParas to {}
             
-            -- Filter out empty or very short paragraphs
-            repeat with para in paragraphList
-                -- Count words in paragraph manually
-                set paraWordCount to 0
-                set AppleScript's text item delimiters to {" ", tab}
-                set paraWords to text items of para
-                repeat with w in paraWords
-                    if length of w > 0 then set paraWordCount to paraWordCount + 1
-                end repeat
-                set AppleScript's text item delimiters to ""
+            -- Take up to 5 key sentences: first 3 and last 2 (if available)
+            if sentenceCount > 0 and (count of sentences) > 0 then
+                -- Get first sentences
+                set maxFirst to 3
+                if (count of sentences) < maxFirst then set maxFirst to count of sentences
                 
-                if paraWordCount > 10 then
-                    set end of significantParas to para
-                end if
-            end repeat
-            
-            -- Get first sentences from first 3 paragraphs and last paragraph
-            set maxKeyParas to 4
-            if (count of significantParas) < maxKeyParas then
-                set maxKeyParas to count of significantParas
-            end if
-            
-            repeat with i from 1 to maxKeyParas
-                if i <= 3 or i = (count of significantParas) then
-                    set currentPara to item i of significantParas
-                    -- Extract first sentence
-                    set firstSentence to my extractFirstSentence(currentPara)
-                    if firstSentence is not "" then
-                        set end of keySentences to firstSentence
+                repeat with i from 1 to maxFirst
+                    set keySentence to item i of sentences
+                    -- Clean up the sentence
+                    set keySentence to my trimText(keySentence)
+                    if length of keySentence > 20 then
+                        set end of keySentences to keySentence
                     end if
+                end repeat
+                
+                -- Get last sentences if we have more than 3
+                if (count of sentences) > 3 then
+                    set startLast to (count of sentences) - 1
+                    if startLast < 4 then set startLast to 4
+                    
+                    repeat with i from startLast to (count of sentences)
+                        set keySentence to item i of sentences
+                        set keySentence to my trimText(keySentence)
+                        if length of keySentence > 20 then
+                            -- Avoid duplicates
+                            set isDuplicate to false
+                            repeat with existing in keySentences
+                                if existing as string = keySentence then
+                                    set isDuplicate to true
+                                    exit repeat
+                                end if
+                            end repeat
+                            if not isDuplicate then
+                                set end of keySentences to keySentence
+                            end if
+                        end if
+                    end repeat
                 end if
-            end repeat
+            end if
             
             -- Metadata analysis
             set hasURL to (docURL is not "")
@@ -173,6 +221,23 @@ on run argv
         end try
     end tell
 end run
+
+-- Trim whitespace from text
+on trimText(theText)
+    set trimmedText to theText
+    
+    -- Trim leading whitespace
+    repeat while (length of trimmedText) > 0 and (character 1 of trimmedText is in {" ", tab, ASCII character 10, ASCII character 13})
+        set trimmedText to text 2 through -1 of trimmedText
+    end repeat
+    
+    -- Trim trailing whitespace
+    repeat while (length of trimmedText) > 0 and (character -1 of trimmedText is in {" ", tab, ASCII character 10, ASCII character 13})
+        set trimmedText to text 1 through -2 of trimmedText
+    end repeat
+    
+    return trimmedText
+end trimText
 
 -- Extract first sentence from a paragraph
 on extractFirstSentence(paragraphText)

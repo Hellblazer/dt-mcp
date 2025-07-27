@@ -551,7 +551,7 @@ async function main() {
 
     server.tool(
       'extract_themes',
-      'Extract common themes and topics from document collections',
+      'Extract common themes and topics from document collections (legacy - use classify_document for better results)',
       {
         documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to analyze for themes')
       },
@@ -561,6 +561,49 @@ async function main() {
           const themes = await devonthink.extractThemes(documentUUIDs);
           return {
             content: [{ type: 'text', text: JSON.stringify(themes, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'classify_document',
+      'Use DEVONthink\'s native AI to classify a document and get AI-powered organizational suggestions',
+      {
+        uuid: z.string().describe('Document UUID to classify using DEVONthink AI')
+      },
+      async ({ uuid }) => {
+        logger.info(`Classifying document ${uuid} using DEVONthink AI`);
+        try {
+          const classification = await devonthink.classifyDocument(uuid);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(classification, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'get_similar_documents',
+      'Find documents similar to a given document using DEVONthink\'s native AI classification',
+      {
+        uuid: z.string().describe('Source document UUID to find similar documents for'),
+        limit: z.number().optional().default(10).describe('Maximum number of similar documents to return (default: 10)')
+      },
+      async ({ uuid, limit = 10 }) => {
+        logger.info(`Finding similar documents for ${uuid} using DEVONthink AI`);
+        try {
+          const similarDocs = await devonthink.getSimilarDocuments(uuid, limit);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(similarDocs, null, 2) }]
           };
         } catch (error) {
           return {
@@ -647,6 +690,53 @@ async function main() {
           const trends = await devonthink.identifyTrends(databaseName);
           return {
             content: [{ type: 'text', text: JSON.stringify(trends, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'advanced_search',
+      'Perform advanced search with DEVONthink\'s full syntax and operators. Supports Boolean operators (AND, OR, NOT), field searches (name:, tag:, comment:), wildcards (*), fuzzy search (~), exact phrases (""), and advanced filtering by scope, sorting, and result limits.',
+      {
+        query: z.string().describe('Search query with DEVONthink operators: AND/OR/NOT, name:term, tag:term, comment:term, kind:pdf, date:YYYY-MM-DD, wildcards (*), fuzzy (~), "exact phrases"'),
+        database: z.string().optional().describe('Specific database name to search in (optional)'),
+        searchIn: z.enum(['all', 'selected', 'current']).optional().default('all').describe('Search scope: all documents, selected documents, or current document'),
+        maxResults: z.number().optional().default(100).describe('Maximum number of results to return (default: 100)'),
+        sortBy: z.enum(['relevance', 'date', 'name', 'size']).optional().default('relevance').describe('Sort results by relevance, date (newest first), name (alphabetical), or size (largest first)'),
+        searchScope: z.enum(['content', 'name', 'comment', 'all']).optional().default('content').describe('Limit search to content, name, comment, or all fields')
+      },
+      async ({ query, database = '', searchIn = 'all', maxResults = 100, sortBy = 'relevance', searchScope = 'content' }) => {
+        logger.info(`Advanced search: "${query}" in ${database || 'all databases'}`);
+        try {
+          const results = await devonthink.advancedSearch(query, database, searchIn, maxResults, sortBy, searchScope);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'list_smart_groups',
+      'List all smart groups in DEVONthink databases. Smart groups are dynamic collections that automatically organize documents based on search criteria. This tool provides direct access to DEVONthink\'s organizational features.',
+      {
+        database: z.string().optional().describe('Specific database name to list smart groups from (optional, lists from all databases if not provided)')
+      },
+      async ({ database = '' }) => {
+        logger.info(`Listing smart groups in ${database || 'all databases'}`);
+        try {
+          const results = await devonthink.listSmartGroups(database);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
         } catch (error) {
           return {

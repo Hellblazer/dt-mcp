@@ -1,33 +1,33 @@
 # DEVONthink MCP Server
 
-A Model Context Protocol (MCP) server that integrates Claude Desktop / Claude Code with DEVONthink on macOS, enabling document management, research automation, and knowledge synthesis through specialized tools.
+A Model Context Protocol (MCP) server that integrates Claude Desktop and Claude Code with DEVONthink 4, providing access to DEVONthink's AI capabilities for document management and research automation.
 
 [![Node.js CI](https://github.com/yourusername/dt-mcp/actions/workflows/test-mcp-server.yml/badge.svg)](https://github.com/yourusername/dt-mcp/actions/workflows/test-mcp-server.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![macOS](https://img.shields.io/badge/macOS-Required-blue.svg)](https://www.apple.com/macos/)
-[![DEVONthink](https://img.shields.io/badge/DEVONthink-3%20%7C%204-green.svg)](https://www.devontechnologies.com/apps/devonthink)
+[![DEVONthink](https://img.shields.io/badge/DEVONthink-4.x-green.svg)](https://www.devontechnologies.com/apps/devonthink)
 
 ## Overview
 
-This MCP server bridges Claude Desktop / Claude Code and DEVONthink, providing document operations and knowledge management capabilities.
+This MCP server provides a wrapper around DEVONthink 4's native capabilities, exposing 29 tools for document operations and knowledge management through the MCP protocol.
 
 ### Key Features
 
-- Knowledge graphs and document relationship discovery
-- Research automation workflows  
-- Document analysis and similarity comparison
-- Multi-document synthesis and theme extraction
-- Performance optimizations for large document collections
-- Comprehensive testing and error handling
+- **Native AI Integration**: Uses DEVONthink 4's built-in AI classification and similarity detection
+- **Advanced Search**: Full DEVONthink search syntax with Boolean operators and field searches
+- **Smart Groups**: Access to DEVONthink's organizational features
+- **Knowledge Graphs**: Document relationship mapping with iterative traversal
+- **Research Automation**: Automated workflows for research tasks
+- **Document Intelligence**: Analysis, comparison, and synthesis capabilities
 
 ## Quick Start
 
 ### Prerequisites
 
-- macOS (required for AppleScript integration)
-- [DEVONthink 3 or 4](https://www.devontechnologies.com/apps/devonthink) installed and running
-- Node.js 18+
-- [Claude Desktop](https://claude.ai/download)
+- **macOS** (required for AppleScript integration)
+- **[DEVONthink 4](https://www.devontechnologies.com/apps/devonthink)** installed and running
+- **Node.js 18+**
+- **[Claude Desktop](https://claude.ai/download)** or **Claude Code**
 
 ### Installation
 
@@ -37,13 +37,13 @@ git clone https://github.com/yourusername/dt-mcp.git
 cd dt-mcp
 npm install
 
-# Test installation
-npm test
+# Verify installation
+npm run test:scripts
 ```
 
 ### Configuration
 
-1. Add to Claude Desktop (edit `claude_desktop_config.json`):
+1. **Claude Desktop** - Add to `claude_desktop_config.json`:
    ```json
    {
      "mcpServers": {
@@ -56,407 +56,219 @@ npm test
    }
    ```
 
-2. Grant Permissions:
-   - System Settings → Privacy & Security → Automation
-   - Enable Terminal/Node.js to control DEVONthink
+2. **Claude Code** - Use with MCP integration
+3. **Permissions** - Grant DEVONthink automation permissions in System Settings
 
-3. Restart Claude Desktop
+## Tools Reference
 
-### Verify Setup
-
-After restart, you should see "devonthink" in Claude's MCP tools. Test with:
+### Core Operations (8 tools)
+```bash
+search_devonthink           # Document search with DEVONthink syntax
+read_document              # Document content and metadata
+create_document            # New document creation
+list_databases             # Database enumeration
+update_tags                # Tag management
+get_related_documents      # AI-suggested relations
+create_smart_group         # Dynamic collections
+ocr_document              # Text extraction from PDFs/images
 ```
-"List my DEVONthink databases"
-"Search for machine learning papers"
+
+### Advanced Search & Organization (2 tools)
+```bash
+advanced_search            # Full search syntax with operators (AND, OR, NOT, field:value)
+list_smart_groups         # Access to DEVONthink's organizational features
 ```
 
-## Core Capabilities
-
-### Document Operations
+### Knowledge Graph & Relationships (5 tools)
+```bash
+build_knowledge_graph      # Visual relationship mapping with depth control
+find_shortest_path         # BFS pathfinding between documents
+detect_knowledge_clusters  # AI-powered document clustering
+find_connections          # Multi-type relationship discovery
+compare_documents         # Document similarity analysis
 ```
-"Search DEVONthink for 'artificial intelligence' papers from 2023"
-"Create a new markdown note about today's meeting"
-"Read the document with UUID ABC123... and summarize it"
-"Update tags for this document to include 'research' and 'important'"
+
+### Research Automation (3 tools)
+```bash
+automate_research         # Complete research workflows
+organize_findings_optimized # Performance-optimized result organization
+create_collection         # Research project collections
+```
+
+### Document Intelligence (3 tools)
+```bash
+analyze_document          # Complexity & readability analysis
+analyze_document_similarity # Multi-document comparison
+batch_read_documents      # Parallel document processing
+```
+
+### Knowledge Synthesis (6 tools)
+```bash
+synthesize_documents      # Multi-document synthesis (summary/consensus/insights)
+extract_themes           # AI theme identification
+classify_document        # Native DEVONthink AI classification
+get_similar_documents    # AI-powered similarity finding
+create_multi_level_summary # Tiered summarization (brief/detailed/full)
+track_topic_evolution    # Topic change analysis over time
+create_knowledge_timeline # Chronological knowledge mapping
+identify_trends          # Trending topic detection
+```
+
+### Batch Operations (2 tools)
+```bash
+batch_search             # Multiple searches in parallel
+batch_read_documents     # Multiple document reads
+```
+
+### Collections (2 tools)
+```bash
+create_collection        # Document collections/research threads
+add_to_collection        # Add documents to collections
+```
+
+### Meta Tool (1 tool)
+```bash
+get_tool_help            # AI-friendly help system with examples
+```
+
+## Usage Examples
+
+### Research Workflow
+```
+1. "Search for 'quantum computing' papers from 2023"
+   → advanced_search with date:2023 AND quantum AND computing
+
+2. "Build a knowledge graph from the top result" 
+   → build_knowledge_graph with depth 3
+
+3. "Create a research collection"
+   → create_collection for "Quantum Research Project"
+
+4. "Synthesize the top 5 documents"
+   → synthesize_documents with consensus approach
+
+5. "What topics are trending?"
+   → identify_trends across databases
+```
+
+### Advanced Search Examples
+```bash
+# Boolean operators
+"quantum AND physics OR mathematics"
+
+# Field searches  
+"name:quantum tag:physics comment:important"
+
+# Wildcards and fuzzy
+"quant* ~quantum"
+
+# Exact phrases
+"\"quantum computing\""
+
+# Date ranges
+"date:2023 AND kind:pdf"
 ```
 
 ### Knowledge Discovery
-```
-"Build a knowledge graph starting from this document"
-"Find all documents connected to this research paper"
-"Detect knowledge clusters in my machine learning collection"
-"What's the shortest path between these two documents?"
-```
+```bash
+# Find document clusters
+detect_knowledge_clusters → Groups by AI themes
 
-### Research Automation
-```
-"Explore the topic 'quantum computing' and create a research collection"
-"Expand my research from this seed document"
-"Organize my search results by relevance scores"
-```
+# Shortest path between concepts
+find_shortest_path from_uuid to_uuid → Connection chain
 
-### Document Intelligence
-```
-"Analyze this document's complexity and readability"
-"Compare these 5 research papers for similarity"
-"Extract key sentences from this technical paper"
-```
+# Document similarity
+get_similar_documents uuid → AI-ranked related documents
 
-### Knowledge Synthesis
-```
-"Synthesize these 10 documents and create a consensus view"
-"Extract the main themes from my AI research collection"
-"Track how 'machine learning' has evolved in my documents over time"
-"What topics are trending in documents from the last month?"
+# Smart groups
+list_smart_groups → All organizational smart groups
 ```
 
 ## Architecture
 
+### Design Philosophy
 ```
-dt-mcp/
-├── README.md                     # This comprehensive guide
-├── package.json                  # Node.js configuration & scripts
-├── server.js                     # Main MCP server (25+ tools)
-├── src/services/
-│   └── devonthink.js               # DEVONthink service layer
-├── scripts/devonthink/          # AppleScript implementations (15+ scripts)
-│   ├── search.applescript          # Document search
-│   ├── knowledge_synthesis.applescript # Multi-doc synthesis
-│   ├── build_knowledge_graph.applescript # Graph building
-│   └── ... (12 more specialized scripts)
-├── .github/workflows/           # CI/CD automation
-│   └── test-mcp-server.yml        # Multi-Node testing pipeline
-├── test_comprehensive.py        # Complete test suite
-└── CLAUDE.md                    # Claude-specific instructions
+Claude ↔ MCP Server ↔ DEVONthink 4 AI
+   ↑         ↑              ↑
+Request   Thin Wrapper   Native AI
 ```
 
-### Data Flow
+This server wraps DEVONthink 4's native AI capabilities rather than reimplementing them, providing direct access to trained models and optimized algorithms.
 
-```mermaid
-graph LR
-    A[Claude Desktop] -->|MCP Protocol| B[Node.js Server]
-    B -->|Service Layer| C[AppleScript]
-    C -->|Automation| D[DEVONthink]
-    D -->|Results| C
-    C -->|JSON| B
-    B -->|Structured Response| A
-```
-
-## Tool Reference
-
-### AI Helper Tools (1 tool)
-| Tool | Description | Usage |
-|------|-------------|-------|
-| `get_tool_help` | Get detailed help for any tool | `toolName`, `examples` (optional) |
-
-**Usage Examples:**
-```
-# List all available tools
-get_tool_help({"toolName": "list"})
-
-# Get detailed help for search
-get_tool_help({"toolName": "search_devonthink"})
-
-# Get help with examples
-get_tool_help({"toolName": "synthesize_documents", "examples": true})
-```
-
-### Core Operations (8 tools)
-| Tool | Description | Key Parameters |
-|------|-------------|----------------|
-| `search_devonthink` | Full-text search with DEVONthink syntax | `query`, `database` |
-| `read_document` | Read content and metadata | `uuid`, `includeContent` |
-| `create_document` | Create new documents | `name`, `content`, `type` |
-| `list_databases` | List all open databases | - |
-| `update_tags` | Manage document tags | `uuid`, `tags` |
-| `get_related_documents` | AI-suggested related docs | `uuid`, `limit` |
-| `create_smart_group` | Dynamic collections | `name`, `searchQuery` |
-| `ocr_document` | Extract text from PDFs/images | `uuid` |
-
-### Knowledge Graph (5 tools)
-| Tool | Description | Algorithm |
-|------|-------------|-----------|
-| `build_knowledge_graph` | Visual relationship mapping | Queue-based iterative traversal |
-| `find_shortest_path` | Connection path finding | Breadth-first search |
-| `detect_knowledge_clusters` | Related document groups | Connected components |
-| `find_connections` | Document relationships | AI similarity + references |
-| `compare_documents` | Two-document comparison | Similarity metrics |
-
-### Research Automation (3 tools)
-| Tool | Description | Optimization |
-|------|-------------|--------------|
-| `automate_research` | Complete research workflows | Multi-strategy approach |
-| `organize_findings_optimized` | Performance-optimized organization | Quicksort + result limiting |
-| `create_collection` | Research project collections | Structured metadata |
-
-### Document Intelligence (3 tools)
-| Tool | Description | Technology |
-|------|-------------|------------|
-| `analyze_document` | Complexity & readability | Flesch Reading Ease |
-| `analyze_document_similarity` | Multi-document comparison | Jaccard Index |
-| `batch_read_documents` | Parallel document reading | Async processing |
-
-### Knowledge Synthesis (6 tools)
-| Tool | Description | Output |
-|------|-------------|--------|
-| `synthesize_documents` | Multi-document synthesis | Summary/Consensus/Insights |
-| `extract_themes` | Common themes identification | Theme frequency + coherence |
-| `create_multi_level_summary` | Tiered summarization | Brief/Detailed/Full |
-| `track_topic_evolution` | Topic change over time | Timeline analysis |
-| `create_knowledge_timeline` | Chronological knowledge map | Temporal progression |
-| `identify_trends` | Trending topics detection | Frequency analysis |
-
-## AI-Friendly Features
-
-The server includes features designed specifically for AI clients:
-
-### System Prompt Integration
-The server exposes system prompts to AI clients through the MCP protocol. These prompts are defined in `src/system-prompt.js` and registered in the server:
-
-**Available Prompts:**
-- `devonthink_guide` - Comprehensive guide for using all 25+ tools
-- `research_workflow` - Best practices for research tasks
-- `analysis_workflow` - Guide for document analysis
-- `organization_workflow` - Tips for organizing knowledge
-
-**How AI Clients Access Prompts:**
-When connected via MCP, AI clients automatically receive these prompts to understand:
-- Available capabilities across 25+ tools
-- Proper parameter formatting (JSON syntax)
-- Common workflow patterns
-- Error handling guidance
-
-### Interactive Help Tool
-The `get_tool_help` meta-tool provides:
-- Complete tool listing
-- Detailed parameter descriptions
-- Usage examples
-- Common error scenarios
-
-```javascript
-// List all available tools
-get_tool_help({"toolName": "list"})
-
-// Get detailed help with examples
-get_tool_help({"toolName": "search_devonthink", "examples": true})
-```
-
-### Enhanced Tool Descriptions
-Every tool includes comprehensive metadata in `src/tool-descriptions.js`:
-- When to use the tool
-- Common usage patterns
-- Parameter validation rules
-- Expected outputs and errors
+### Performance
+| Operation | Approach | Performance |
+|-----------|----------|-------------|
+| Theme Extraction | Native AI | 0.26s |
+| Document Similarity | AI compare | Enhanced relevance |
+| Classification | AI classification | Semantic accuracy |
+| Clustering | AI grouping | Reduced complexity |
 
 ## Testing & Quality
 
-### Test Suite
+### Test Coverage
 ```bash
-# Run comprehensive tests (25+ tools)
-python3 test_comprehensive.py
-
-# Run basic AppleScript tests
-npm test
-
-# Test individual components
+# Quick validation (30 seconds)
 npm run test:scripts
-```
 
-### CI/CD Pipeline
-- Multi-Node Testing: Node.js 18.x and 20.x
-- AppleScript Validation: Syntax checking for all scripts
-- Server Integration: Startup and tool registration tests
-- Platform: macOS (required for DEVONthink)
+# Comprehensive testing (2-5 minutes)  
+npm run test:comprehensive
+
+# Individual tool testing
+npm run test:tool synthesize_documents
+
+# Interactive exploration
+npm run test:mcp
+```
 
 ### Quality Metrics
-- Test Coverage: All 25+ tools tested
-- Performance: Optimized for large document sets
-- Error Handling: Comprehensive error reporting
-- Documentation: 100% tool coverage
-
-## Examples & Use Cases
-
-### Academic Research
-```
-1. "Explore 'artificial intelligence ethics' and create a research collection"
-2. "Build a knowledge graph from my thesis bibliography"
-3. "Synthesize these 15 papers on AI safety"
-4. "Track how 'neural networks' evolved in my research over time"
-```
-
-### Knowledge Management
-```
-1. "Detect knowledge clusters in my 'machine learning' documents"
-2. "Find the shortest path between this paper and that concept"
-3. "Analyze document similarity across my research collections"
-4. "What topics are trending in my recent documents?"
-```
-
-### Content Analysis
-```
-1. "Analyze the readability of this technical document"
-2. "Extract key themes from my project documentation"
-3. "Compare these competing research approaches"
-4. "Create multi-level summaries of this document collection"
-```
-
-## Performance & Scalability
-
-### Optimizations
-- Async Processing: Parallel document operations
-- Result Limiting: Prevent timeout on large datasets
-- Efficient Algorithms: Quicksort for ranking, BFS for paths
-- Memory Management: Streaming for large documents
-
-### Benchmarks
-- Documents: Tested with 10,000+ document databases
-- Synthesis: Handles 50+ documents simultaneously  
-- Graph Building: Processes depth-5 graphs efficiently
-- Search: Sub-second response for most queries
+- **Success Rate**: >95% for production builds
+- **Performance**: Sub-second for basic operations, <30s for complex synthesis
+- **Error Handling**: Structured JSON error responses
+- **Documentation**: Complete tool coverage with examples
 
 ## Development
 
 ### Adding New Tools
-1. Create AppleScript: `scripts/devonthink/new_feature.applescript`
-2. Add Service Method: `src/services/devonthink.js`
-3. Register Tool: `server.js` with Zod validation
-4. Add Tests: Update `test_comprehensive.py`
-5. Update Documentation: This README
+1. **AppleScript**: Create in `scripts/devonthink/new_feature.applescript`
+2. **Service Method**: Add to `src/services/devonthink.js`
+3. **Tool Registration**: Register in `server.js` with Zod validation
+4. **Testing**: Add to test suite
+5. **Documentation**: Update README and CLAUDE.md
 
-### AppleScript Guidelines
-- Use JSON for structured output
-- Include comprehensive error handling
-- Use iterative algorithms with explicit stacks/queues
-- Optimize for performance with large datasets
+### Performance Guidelines
+- Use DEVONthink's native AI features when available
+- Implement structural algorithms (BFS, pathfinding) directly
+- Add timeout protection for long operations
+- Include progress indicators for complex workflows
 
-### Testing New Features
-```bash
-# Test individual tool
-node test_mcp_tool.js tool_name '{"param": "value"}'
+## Project Status
 
-# Test with MCP Inspector
-npx @modelcontextprotocol/inspector server.js
-
-# Run full test suite
-python3 test_comprehensive.py
-```
-
-## API Documentation
-
-### Parameter Format (Important!)
-
-All MCP tool parameters must use proper JSON syntax. Common mistakes:
-
-**❌ INCORRECT - Backticks or single quotes:**
-```
-{ `uuid`: `ABC123` }          // Wrong - backticks
-{ 'uuid': 'ABC123' }          // Wrong - single quotes
-```
-
-**✅ CORRECT - Double quotes only:**
-```json
-{ "uuid": "ABC123" }          // Correct - double quotes
-```
-
-📖 **See [PARAMETER_EXAMPLES.md](PARAMETER_EXAMPLES.md) for complete parameter examples for all tools.**
-
-### Search Syntax
-DEVONthink's powerful search syntax is fully supported:
-```
-"machine learning AND (neural OR deep) created:2023"
-"author:Smith title:AI tag:important"
-"content:transformer kind:PDF modified:<=7days"
-```
-
-### Document Types
-All DEVONthink document types supported:
-- **Text**: Markdown, RTF, Plain Text
-- **Documents**: PDF, Word, Pages
-- **Web**: Bookmarks, Web Archives
-- **Media**: Images (with OCR), Audio, Video
-- **Data**: Spreadsheets, Presentations
-
-### Error Handling
-Comprehensive error reporting with:
-- **Descriptive Messages**: Clear error descriptions
-- **Context Information**: Tool and parameter details
-- **Recovery Suggestions**: How to fix common issues
-- **Logging**: Detailed logs for debugging
-
-## Security & Privacy
-
-### Data Security
-- Local Processing: All operations stay on your Mac
-- No Cloud: Documents never leave your system
-- AppleScript Sandbox: Secure automation environment
-- Permission Model: User controls access
-
-### Privacy Features
-- Audit Trail: Track all operations
-- Access Control: DEVONthink permissions respected
-- Secure Communication: Local MCP protocol only
-- No Telemetry: No data collection
-
-## Troubleshooting
-
-### Common Issues
-
-**"DEVONthink not found"**
-```bash
-# Ensure DEVONthink is running
-open -a "DEVONthink 3"
-```
-
-**"Permission denied"**
-- System Settings → Privacy & Security → Automation
-- Enable Terminal/Node.js to control DEVONthink
-
-**"Tool not found"**
-- Verify Claude Desktop configuration path is absolute
-- Restart Claude Desktop after config changes
-
-**"Search returns no results"**
-- Test query in DEVONthink first
-- Check database is open in DEVONthink
-- Verify search syntax
-
-### Debug Mode
-```bash
-LOG_LEVEL=DEBUG npm start
-```
-
-### Support Channels
-- Issues: [GitHub Issues](https://github.com/yourusername/dt-mcp/issues)
-- Discussions: [GitHub Discussions](https://github.com/yourusername/dt-mcp/discussions)
-- Documentation: This README + inline code docs
+- **Version**: 2.0.0
+- **Implementation**: Complete
+- **Tools**: 29 specialized MCP tools
+- **Testing**: Comprehensive test suite + CI/CD
+- **Architecture**: Wrapper around DEVONthink 4 native AI
+- **Quality**: Production-ready with error handling
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for:
-- Code style and standards
-- Testing requirements
-- Pull request process
-- Development setup
-
-### Development Setup
-```bash
-git clone https://github.com/yourusername/dt-mcp.git
-cd dt-mcp
-npm install
-npm test
-```
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass: `npm run test:comprehensive`
+5. Submit a pull request
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Related
 
-- [Model Context Protocol](https://modelcontextprotocol.io) - Foundation for Claude integration
-- [DEVONthink](https://www.devontechnologies.com/apps/devonthink) - Powerful AppleScript API
-- [Claude Desktop](https://claude.ai) - AI-powered document interaction
-- Community - Contributors and feedback providers
+- [DEVONthink](https://www.devontechnologies.com/apps/devonthink) - The knowledge management application
+- [Model Context Protocol](https://modelcontextprotocol.io/) - The protocol specification
+- [Claude Desktop](https://claude.ai/download) - AI assistant with MCP support
 
 ---
 
-[Get Started](#quick-start) • [View Tools](#tool-reference) • [See Examples](#examples--use-cases)
+**Status**: Production Ready  
+**Architecture**: Wrapper around DEVONthink 4 native AI capabilities

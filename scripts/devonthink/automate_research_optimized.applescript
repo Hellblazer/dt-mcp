@@ -187,11 +187,13 @@ on quickSort(theList, leftIndex, rightIndex)
 end quickSort
 
 on partition(theList, leftIndex, rightIndex)
-    set pivotValue to score of (item rightIndex of theList)
+    set pivotRecord to item rightIndex of theList
+    set pivotValue to score of pivotRecord
     set i to leftIndex - 1
     
     repeat with j from leftIndex to rightIndex - 1
-        if score of (item j of theList) >= pivotValue then
+        set currentRecord to item j of theList
+        if score of currentRecord >= pivotValue then
             set i to i + 1
             set temp to item i of theList
             set item i of theList to item j of theList

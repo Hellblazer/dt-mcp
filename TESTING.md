@@ -1,20 +1,20 @@
 # Testing Guide
 
-> **Comprehensive testing documentation for DEVONthink MCP Server**
+Testing documentation for DEVONthink MCP Server.
 
 This guide covers all testing approaches, from basic validation to comprehensive integration testing.
 
-## 🧪 Test Overview
+## Test Overview
 
 The DEVONthink MCP Server includes multiple testing layers:
 
-- **🔧 Basic Validation**: AppleScript syntax and server startup
-- **🧰 Unit Testing**: Individual tool testing  
-- **🔄 Integration Testing**: End-to-end workflows
-- **📊 Comprehensive Testing**: All 25+ tools across 4 phases
-- **🚀 CI/CD Testing**: Automated GitHub Actions pipeline
+- **Basic Validation**: AppleScript syntax and server startup
+- **Unit Testing**: Individual tool testing  
+- **Integration Testing**: End-to-end workflows
+- **Comprehensive Testing**: All 29 tools across implementation phases
+- **CI/CD Testing**: Automated GitHub Actions pipeline
 
-## 🚀 Quick Test Commands
+## Quick Test Commands
 
 ```bash
 # Run all tests
@@ -23,7 +23,7 @@ npm test
 # Test basic functionality only
 npm run test:scripts
 
-# Test comprehensive suite (all 25+ tools)
+# Test comprehensive suite (all 29 tools)
 npm run test:comprehensive
 
 # Test search functionality specifically
@@ -39,7 +39,7 @@ npm run test:mcp
 npm run validate
 ```
 
-## 📋 Test Categories
+## Test Categories
 
 ### 1. Basic Validation Tests
 
@@ -119,44 +119,44 @@ npm run test:tool list_databases '{}'
 
 ### 3. Comprehensive Integration Testing
 
-**Purpose**: Test all 25+ tools across all phases
+**Purpose**: Test all 29 tools across implementation phases
 **Duration**: ~2-5 minutes
 **Command**: `npm run test:comprehensive`
 
 **Test Coverage**:
-- ✅ **Core Operations** (8 tools): search, read, create, tags, etc.
-- ✅ **Knowledge Graph** (5 tools): graph building, shortest path, clusters
-- ✅ **Research Automation** (3 tools): workflows, optimization, collections  
-- ✅ **Document Intelligence** (3 tools): analysis, similarity, extraction
-- ✅ **Knowledge Synthesis** (6 tools): synthesis, themes, evolution, trends
+- **Core Operations** (8 tools): search, read, create, tags, etc.
+- **Knowledge Graph** (5 tools): graph building, shortest path, clusters
+- **Research Automation** (3 tools): workflows, optimization, collections  
+- **Document Intelligence** (3 tools): analysis, similarity, extraction
+- **Knowledge Synthesis** (6 tools): synthesis, themes, evolution, trends
 
 **Example Output**:
 ```
-🚀 DEVONthink MCP Server - Comprehensive Test Suite
+DEVONthink MCP Server - Comprehensive Test Suite
 ======================================================================
-Testing all 25+ tools across 4 implementation phases...
+Testing all 29 tools across implementation phases...
 
-🔍 CORE: Basic DEVONthink Operations Tests
+CORE: Basic DEVONthink Operations Tests
 ============================================================
 Testing search_devonthink: Basic document search...
-  ✅ PASSED
+  PASSED
 Testing list_databases: List DEVONthink databases...
-  ✅ PASSED
+  PASSED
 
-🧠 PHASE 1: Knowledge Graph & Relationships Tests
+KNOWLEDGE GRAPH: Graph & Relationships Tests
 ============================================================
 Testing build_knowledge_graph: Build knowledge graph with depth control...
-  ✅ PASSED
+  PASSED
 
-📊 TEST RESULTS SUMMARY
+TEST RESULTS SUMMARY
 ======================================================================
-Total Tests: 25
-Passed: 23 ✅
-Failed: 2 ❌
-Success Rate: 92.0%
+Total Tests: 29
+Passed: 27
+Failed: 2
+Success Rate: 93.0%
 Duration: 4.2s
 
-📄 Detailed results saved to: test_results_comprehensive.json
+Detailed results saved to: test_results_comprehensive.json
 ```
 
 ### 4. Interactive MCP Testing
@@ -171,7 +171,7 @@ This opens the MCP Inspector for interactive testing:
 - View real-time responses
 - Debug connection issues
 
-## 🔧 Tool-Specific Testing
+## Tool-Specific Testing
 
 ### Core Operations Testing
 
@@ -241,7 +241,7 @@ npm run test:tool track_topic_evolution '{"topic": "artificial intelligence", "t
 npm run test:tool identify_trends '{}'
 ```
 
-## 🐛 Troubleshooting Tests
+## Troubleshooting Tests
 
 ### Common Test Issues
 
@@ -293,7 +293,7 @@ osascript scripts/devonthink/knowledge_synthesis.applescript "synthesize" "summa
 osascript scripts/devonthink/check_devonthink.applescript
 ```
 
-## 📊 Test Results Analysis
+## Test Results Analysis
 
 ### Comprehensive Test Results
 
@@ -302,10 +302,10 @@ The comprehensive test suite generates `test_results_comprehensive.json`:
 ```json
 {
   "summary": {
-    "total_tests": 25,
-    "passed": 23,
+    "total_tests": 29,
+    "passed": 27,
     "failed": 2,
-    "success_rate": 92.0
+    "success_rate": 93.0
   },
   "tests": {
     "search_devonthink": {
@@ -340,7 +340,7 @@ Monitor test performance:
 - **Development**: >85% success rate
 - **CI/CD**: >90% success rate (some tools may fail without full DEVONthink setup)
 
-## 🚀 CI/CD Testing
+## CI/CD Testing
 
 ### GitHub Actions Pipeline
 
@@ -371,19 +371,19 @@ for script in scripts:
     try:
         subprocess.run(['osascript', script], 
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
-        print(f'✅ {script} syntax OK')
+        print(f'{script} syntax OK')
     except:
-        print(f'❌ {script} syntax failed')
+        print(f'{script} syntax failed')
 "
 
 # Test server startup
 timeout 10s node server.js &
 sleep 3
 pkill -f "node server.js" || true
-echo "✅ Server startup test completed"
+echo "Server startup test completed"
 ```
 
-## 📚 Writing New Tests
+## Writing New Tests
 
 ### Adding Tool Tests
 
@@ -434,7 +434,7 @@ Document common test scenarios:
 Expected: Complete workflow with no errors
 ```
 
-## 📋 Test Checklist
+## Test Checklist
 
 ### Before Release
 - [ ] All comprehensive tests passing (>95%)

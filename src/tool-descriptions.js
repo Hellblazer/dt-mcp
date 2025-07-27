@@ -8,10 +8,10 @@
  */
 
 export const toolDescriptions = {
-  // Core Operations
+  // Core Operations (8 tools)
   search_devonthink: {
     brief: 'Search documents in DEVONthink databases',
-    detailed: `Search DEVONthink using its powerful query syntax. Returns document metadata.
+    detailed: `Search DEVONthink using its query syntax. Returns document metadata.
     
     WHEN TO USE:
     - Finding documents by content, tags, dates, or metadata
@@ -281,6 +281,477 @@ export const toolDescriptions = {
       startDate: 'ISO date format: YYYY-MM-DD',
       endDate: 'ISO date format: YYYY-MM-DD. Default: today'
     }
+  },
+
+  // Additional Core Operations
+  update_tags: {
+    brief: 'Update tags for a DEVONthink document',
+    detailed: `Update or replace the tags for a specific document.
+    
+    WHEN TO USE:
+    - Organizing documents with tags
+    - Batch tagging operations
+    - Updating document metadata
+    
+    COMMON PATTERNS:
+    - Add tags: {"uuid": "...", "tags": ["new-tag1", "new-tag2"]}
+    - Replace all tags: {"uuid": "...", "tags": ["only-these-tags"]}
+    - Clear tags: {"uuid": "...", "tags": []}
+    
+    RETURNS: Updated document object with new tags
+    ERRORS: Document not found, invalid UUID`,
+    
+    parameterHelp: {
+      uuid: 'Document UUID to update',
+      tags: 'Array of tag strings. Replaces all existing tags.'
+    }
+  },
+
+  get_related_documents: {
+    brief: 'Get AI-suggested related documents',
+    detailed: `Find documents related to a specific document using DEVONthink's AI.
+    
+    WHEN TO USE:
+    - Discovering related content
+    - Expanding research topics
+    - Finding similar documents
+    
+    RETURNS: Array of related documents sorted by relevance
+    ERRORS: Document not found, AI not available`,
+    
+    parameterHelp: {
+      uuid: 'Document UUID to find relations for',
+      limit: 'Maximum number of related documents. Default: 10'
+    }
+  },
+
+  create_smart_group: {
+    brief: 'Create a smart group with search criteria',
+    detailed: `Create a dynamic smart group that auto-updates based on search criteria.
+    
+    WHEN TO USE:
+    - Creating dynamic collections
+    - Organizing research by criteria
+    - Monitoring new documents matching criteria
+    
+    COMMON PATTERNS:
+    - Topic group: {"name": "AI Papers", "searchQuery": "kind:PDF tag:ai"}
+    - Recent items: {"name": "This Week", "searchQuery": "created:<=7days"}
+    
+    RETURNS: Created smart group object
+    ERRORS: Invalid search query, database not found`,
+    
+    parameterHelp: {
+      name: 'Smart group name',
+      searchQuery: 'DEVONthink search predicate',
+      database: 'Target database name. Default: first available'
+    }
+  },
+
+  ocr_document: {
+    brief: 'Perform OCR on PDF or image documents',
+    detailed: `Extract text from scanned PDFs or images using OCR.
+    
+    WHEN TO USE:
+    - Processing scanned documents
+    - Making PDFs searchable
+    - Extracting text from images
+    
+    NOTE: OCR may take time for large documents
+    
+    RETURNS: OCR status and extracted text preview
+    ERRORS: Document not PDF/image, OCR failed`,
+    
+    parameterHelp: {
+      uuid: 'Document UUID to OCR'
+    }
+  },
+
+  // Batch Operations
+  batch_search: {
+    brief: 'Search for multiple queries simultaneously',
+    detailed: `Execute multiple searches in parallel for efficiency.
+    
+    WHEN TO USE:
+    - Searching for multiple topics
+    - Comparing search results
+    - Building comprehensive result sets
+    
+    COMMON PATTERNS:
+    - Multiple topics: {"queries": ["topic1", "topic2", "topic3"]}
+    - Different criteria: {"queries": ["kind:PDF", "tag:important", "created:2023"]}
+    
+    RETURNS: Object mapping queries to their results
+    ERRORS: Invalid queries, database errors`,
+    
+    parameterHelp: {
+      queries: 'Array of search query strings',
+      database: 'Optional database to search in'
+    }
+  },
+
+  batch_read_documents: {
+    brief: 'Read multiple documents simultaneously',
+    detailed: `Retrieve multiple documents in parallel for performance.
+    
+    WHEN TO USE:
+    - Processing multiple documents
+    - Bulk operations
+    - Comparative analysis
+    
+    RETURNS: Array of document objects
+    ERRORS: Documents not found, timeout`,
+    
+    parameterHelp: {
+      uuids: 'Array of document UUIDs',
+      includeContent: 'Include full content. Default: false'
+    }
+  },
+
+  // Advanced Features
+  find_connections: {
+    brief: 'Find all connections from a document',
+    detailed: `Discover all types of connections from a document.
+    
+    WHEN TO USE:
+    - Exploring document relationships
+    - Finding references
+    - Understanding document context
+    
+    CONNECTION TYPES:
+    - AI-based similarities
+    - Explicit references
+    - Shared tags
+    - Same group/location
+    
+    RETURNS: Array of connections with type and strength
+    ERRORS: Document not found`,
+    
+    parameterHelp: {
+      uuid: 'Document UUID to find connections from',
+      maxResults: 'Maximum connections to return. Default: 10'
+    }
+  },
+
+  compare_documents: {
+    brief: 'Compare two documents for similarity',
+    detailed: `Detailed comparison of two documents.
+    
+    WHEN TO USE:
+    - Finding duplicate content
+    - Comparing versions
+    - Analyzing similarity
+    
+    COMPARISON METRICS:
+    - Tag overlap
+    - Word count difference
+    - Content similarity (if available)
+    
+    RETURNS: Comparison object with metrics
+    ERRORS: Documents not found`,
+    
+    parameterHelp: {
+      uuid1: 'First document UUID',
+      uuid2: 'Second document UUID'
+    }
+  },
+
+  create_collection: {
+    brief: 'Create a new document collection',
+    detailed: `Create a collection for organizing related documents.
+    
+    WHEN TO USE:
+    - Starting research projects
+    - Grouping related documents
+    - Creating reading lists
+    
+    RETURNS: Created collection object
+    ERRORS: Database not found`,
+    
+    parameterHelp: {
+      name: 'Collection name',
+      description: 'Collection description',
+      database: 'Target database. Default: first available'
+    }
+  },
+
+  add_to_collection: {
+    brief: 'Add document to collection',
+    detailed: `Add a document to an existing collection.
+    
+    WHEN TO USE:
+    - Building research collections
+    - Organizing findings
+    - Creating curated lists
+    
+    RETURNS: Success status
+    ERRORS: Collection or document not found`,
+    
+    parameterHelp: {
+      collectionUUID: 'Collection UUID',
+      documentUUID: 'Document UUID to add',
+      notes: 'Optional notes about why added'
+    }
+  },
+
+  // Phase 2: Research Automation (continued)
+  detect_knowledge_clusters: {
+    brief: 'Detect clusters of related documents',
+    detailed: `Find groups of related documents using clustering algorithms.
+    
+    WHEN TO USE:
+    - Discovering topic clusters
+    - Finding document groups
+    - Understanding knowledge structure
+    
+    ALGORITHM: Tag-based and connection clustering
+    
+    RETURNS: Clusters with documents and common themes
+    ERRORS: Insufficient documents, no clusters found`,
+    
+    parameterHelp: {
+      searchQuery: 'Base search query for documents',
+      maxDocuments: 'Max documents to analyze. Default: 50',
+      minClusterSize: 'Minimum cluster size. Default: 3'
+    }
+  },
+
+  organize_findings_optimized: {
+    brief: 'Organize search results by relevance',
+    detailed: `Sort and organize search results using relevance scoring.
+    
+    WHEN TO USE:
+    - Prioritizing search results
+    - Finding most relevant documents
+    - Research organization
+    
+    RETURNS: Organized results with relevance scores
+    ERRORS: Search failed, no results`,
+    
+    parameterHelp: {
+      searchQuery: 'Search query',
+      maxResults: 'Maximum results to return. Default: 50'
+    }
+  },
+
+  // Phase 3: Document Intelligence (continued)
+  analyze_document_similarity: {
+    brief: 'Compare multiple documents for similarity',
+    detailed: `Analyze similarity across multiple documents using various metrics.
+    
+    WHEN TO USE:
+    - Finding similar documents
+    - Detecting duplicates
+    - Grouping by similarity
+    
+    METRICS:
+    - Jaccard similarity
+    - Tag overlap
+    - Content similarity
+    
+    RETURNS: Similarity matrix and clusters
+    ERRORS: Insufficient documents`,
+    
+    parameterHelp: {
+      uuids: 'Array of document UUIDs (minimum 2)'
+    }
+  },
+
+  // Phase 4: Knowledge Synthesis (continued)
+  extract_themes: {
+    brief: 'Extract themes from document collection',
+    detailed: `Identify common themes and topics across documents.
+    
+    WHEN TO USE:
+    - Understanding document collections
+    - Finding common topics
+    - Theme analysis
+    
+    RETURNS: Array of themes with relevance scores
+    ERRORS: No themes found, insufficient content`,
+    
+    parameterHelp: {
+      documentUUIDs: 'Array of document UUIDs to analyze'
+    }
+  },
+
+  create_multi_level_summary: {
+    brief: 'Create summaries at different detail levels',
+    detailed: `Generate summaries with varying levels of detail.
+    
+    WHEN TO USE:
+    - Creating executive summaries
+    - Different audience needs
+    - Progressive disclosure
+    
+    SUMMARY LEVELS:
+    - brief: 1-2 paragraphs
+    - detailed: Full page summary
+    - full: Comprehensive summary
+    
+    RETURNS: Summary object with all levels
+    ERRORS: Documents not found`,
+    
+    parameterHelp: {
+      documentUUIDs: 'Array of document UUIDs',
+      summaryLevel: 'Level: "brief", "detailed", or "full"'
+    }
+  },
+
+  create_knowledge_timeline: {
+    brief: 'Create chronological timeline from documents',
+    detailed: `Build a timeline showing knowledge evolution.
+    
+    WHEN TO USE:
+    - Historical analysis
+    - Progress tracking
+    - Evolution visualization
+    
+    RETURNS: Timeline with events and documents
+    ERRORS: No dated documents`,
+    
+    parameterHelp: {
+      documentUUIDs: 'Array of document UUIDs'
+    }
+  },
+
+  identify_trends: {
+    brief: 'Identify trending topics in recent documents',
+    detailed: `Find trending topics based on recent document activity.
+    
+    WHEN TO USE:
+    - Spotting emerging topics
+    - Trend analysis
+    - Current awareness
+    
+    RETURNS: Trending topics with growth metrics
+    ERRORS: Insufficient recent documents`,
+    
+    parameterHelp: {
+      databaseName: 'Optional specific database to analyze'
+    }
+  },
+
+  // Advanced Search & Organization (2 tools)
+  advanced_search: {
+    brief: 'Advanced search with full DEVONthink syntax and operators',
+    detailed: `Perform advanced search with DEVONthink's complete syntax including Boolean operators, field searches, wildcards, and filtering options.
+    
+    WHEN TO USE:
+    - Complex queries requiring multiple operators
+    - Field-specific searches (name:, tag:, comment:, etc.)
+    - Advanced filtering by scope, sorting, result limits
+    - Precision searches with exact phrases or fuzzy matching
+    
+    SUPPORTED OPERATORS:
+    - Boolean: AND, OR, NOT
+    - Field searches: name:term, tag:term, comment:term, kind:pdf
+    - Date queries: date:YYYY-MM-DD, created:>=2023
+    - Wildcards: term*, *term, *term*
+    - Fuzzy search: ~term
+    - Exact phrases: "exact phrase"
+    
+    SEARCH SCOPES:
+    - content: Search document content only
+    - name: Search document names only
+    - comment: Search comments only
+    - all: Search all fields
+    
+    SORT OPTIONS:
+    - relevance: DEVONthink relevance scoring
+    - date: Newest first
+    - name: Alphabetical
+    - size: Largest first
+    
+    RETURNS: Comprehensive search results with metadata and analysis
+    ERRORS: Invalid syntax, unsupported operators`,
+    
+    parameterHelp: {
+      query: 'Advanced search query with operators: AND/OR/NOT, name:, tag:, comment:, kind:, date:, wildcards (*), fuzzy (~), "exact phrases"',
+      database: 'Specific database name (optional)',
+      searchIn: 'Search scope: "all", "selected", or "current" documents',
+      maxResults: 'Maximum results to return (default: 100)',
+      sortBy: 'Sort by: "relevance", "date", "name", or "size"',
+      searchScope: 'Field scope: "content", "name", "comment", or "all"'
+    }
+  },
+
+  list_smart_groups: {
+    brief: 'List all smart groups in DEVONthink databases',
+    detailed: `Access DEVONthink's smart groups, which are dynamic collections that automatically organize documents based on search criteria.
+    
+    WHEN TO USE:
+    - Exploring existing organizational structures
+    - Understanding automated document groupings
+    - Finding dynamic collections for specific topics
+    - Accessing pre-configured document filters
+    
+    SMART GROUP FEATURES:
+    - Automatically update based on criteria
+    - Dynamic membership as documents change
+    - Searchable and filterable results
+    - Database-specific or cross-database collections
+    
+    COMMON PATTERNS:
+    - All smart groups: {}
+    - Database-specific: {"database": "Research"}
+    
+    RETURNS: Array of smart groups with names, criteria, document counts
+    ERRORS: Database not found, access denied`,
+    
+    parameterHelp: {
+      database: 'Specific database name to list smart groups from (optional, lists from all databases if not provided)'
+    }
+  },
+
+  // Native AI Tools (2 tools)
+  classify_document: {
+    brief: 'Use DEVONthink\'s native AI to classify a document',
+    detailed: `Leverage DEVONthink 4's built-in AI classification system for document analysis and organizational suggestions.
+    
+    WHEN TO USE:
+    - Getting AI-powered document categorization
+    - Finding suggested tags and classifications
+    - Understanding document themes using native AI
+    - Accessing DEVONthink's trained classification models
+    
+    NATIVE AI ADVANTAGES:
+    - Pre-trained on large document corpus
+    - Semantic understanding beyond keyword matching
+    - Consistent with DEVONthink's organization paradigms
+    - Performance optimized for large collections
+    
+    RETURNS: AI classification with suggested categories, tags, and themes
+    ERRORS: Document not found, AI not available`,
+    
+    parameterHelp: {
+      uuid: 'Document UUID to classify using DEVONthink AI'
+    }
+  },
+
+  get_similar_documents: {
+    brief: 'Find similar documents using DEVONthink\'s native AI',
+    detailed: `Use DEVONthink 4's AI to find documents similar to a given document based on semantic content analysis.
+    
+    WHEN TO USE:
+    - Discovering related content
+    - Finding documents on similar topics
+    - Exploring connections between ideas
+    - Building research collections around themes
+    
+    AI SIMILARITY FEATURES:
+    - Semantic understanding beyond keyword matching
+    - Content-based relevance scoring
+    - Cross-database similarity detection
+    - Performance optimized for large collections
+    
+    RETURNS: Array of similar documents ranked by AI-determined relevance
+    ERRORS: Document not found, AI not available`,
+    
+    parameterHelp: {
+      uuid: 'Source document UUID to find similar documents for',
+      limit: 'Maximum number of similar documents to return (default: 10)'
+    }
   }
 };
 
@@ -359,6 +830,124 @@ export const exampleUsage = {
 {
   "uuids": ["UUID-1", "UUID-2"],
   "synthesisType": "contradictions"
+}
+\`\`\``,
+
+  build_knowledge_graph: `
+### Build basic knowledge graph
+\`\`\`json
+{
+  "uuid": "93FA2969-A1C2-4982-B7E9-379B27AEAC3E"
+}
+\`\`\`
+
+### Deep exploration with max depth
+\`\`\`json
+{
+  "uuid": "93FA2969-A1C2-4982-B7E9-379B27AEAC3E",
+  "maxDepth": 5
+}
+\`\`\``,
+
+  automate_research: `
+### Explore new topic
+\`\`\`json
+{
+  "queryOrUUID": "quantum computing algorithms",
+  "workflowType": "explore_topic"
+}
+\`\`\`
+
+### Expand from existing document
+\`\`\`json
+{
+  "queryOrUUID": "93FA2969-A1C2-4982-B7E9-379B27AEAC3E",
+  "workflowType": "expand_research"
+}
+\`\`\``,
+
+  batch_search: `
+### Search multiple topics
+\`\`\`json
+{
+  "queries": ["machine learning", "neural networks", "deep learning"],
+  "database": "Research"
+}
+\`\`\``,
+
+  create_smart_group: `
+### Create AI papers group
+\`\`\`json
+{
+  "name": "AI Research 2024",
+  "searchQuery": "kind:PDF tag:ai created:>=2024",
+  "database": "Research"
+}
+\`\`\``,
+
+  advanced_search: `
+### Complex Boolean search with field filters
+\`\`\`json
+{
+  "query": "(quantum AND computing) OR (machine AND learning) AND kind:PDF",
+  "database": "Research",
+  "sortBy": "date",
+  "maxResults": 50
+}
+\`\`\`
+
+### Search by date range and tags
+\`\`\`json
+{
+  "query": "tag:important AND created:>=2023-01-01 AND name:*analysis*",
+  "searchScope": "all",
+  "sortBy": "relevance"
+}
+\`\`\``,
+
+  list_smart_groups: `
+### List all smart groups
+\`\`\`json
+{}
+\`\`\`
+
+### List smart groups from specific database
+\`\`\`json
+{
+  "database": "Research"
+}
+\`\`\``,
+
+  classify_document: `
+### Classify document using native AI
+\`\`\`json
+{
+  "uuid": "93FA2969-A1C2-4982-B7E9-379B27AEAC3E"
+}
+\`\`\``,
+
+  get_similar_documents: `
+### Find similar documents
+\`\`\`json
+{
+  "uuid": "93FA2969-A1C2-4982-B7E9-379B27AEAC3E",
+  "limit": 15
+}
+\`\`\``,
+
+  get_tool_help: `
+### List all available tools
+\`\`\`json
+{
+  "toolName": "list"
+}
+\`\`\`
+
+### Get detailed help for specific tool
+\`\`\`json
+{
+  "toolName": "search_devonthink",
+  "examples": true
 }
 \`\`\``
 };

@@ -42,19 +42,45 @@ on run argv
     if (count of argv) > 3 then set groupPath to item 4 of argv
     
     tell application id "DNtp"
-        set targetGroup to current group
-        if groupPath is not "" then
-            set targetGroup to get record at groupPath
-        end if
-        
-        if docType is "markdown" then
-            set newRecord to create record with {name:docName, type:markdown, content:docContent} in targetGroup
-        else if docType is "rtf" then
-            set newRecord to create record with {name:docName, type:rtf, rich text:docContent} in targetGroup
-        else
-            set newRecord to create record with {name:docName, type:txt, plain text:docContent} in targetGroup
-        end if
-        
-        return my recordToJSON(newRecord)
+        try
+            set targetGroup to current group
+            set groupWarning to ""
+            
+            if groupPath is not "" then
+                try
+                    set targetGroup to get record at groupPath
+                    if targetGroup is missing value then
+                        -- Group not found, use current group with warning
+                        set targetGroup to current group
+                        set groupWarning to "Warning: Group path '" & groupPath & "' not found. Document created in current group instead."
+                    end if
+                on error
+                    -- Group not found, use current group with warning
+                    set targetGroup to current group
+                    set groupWarning to "Warning: Group path '" & groupPath & "' not found. Document created in current group instead."
+                end try
+            end if
+            
+            if docType is "markdown" then
+                set newRecord to create record with {name:docName, type:markdown, content:docContent} in targetGroup
+            else if docType is "rtf" then
+                set newRecord to create record with {name:docName, type:rtf, rich text:docContent} in targetGroup
+            else
+                set newRecord to create record with {name:docName, type:txt, plain text:docContent} in targetGroup
+            end if
+            
+            -- Build response with optional warning
+            set jsonResponse to my recordToJSON(newRecord)
+            if groupWarning is not "" then
+                -- Insert warning into JSON response
+                set jsonResponse to text 1 through -2 of jsonResponse -- Remove closing brace
+                set jsonResponse to jsonResponse & ",\"warning\":\"" & my escapeString(groupWarning) & "\"}"
+            end if
+            
+            return jsonResponse
+            
+        on error errMsg
+            return "{\"error\":\"" & my escapeString(errMsg) & "\"}"
+        end try
     end tell
 end run

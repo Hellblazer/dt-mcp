@@ -9,27 +9,31 @@ on run argv
     tell application id "DNtp"
         try
             -- Collect documents
-            set documents to {}
+            set documentsList to {}
             repeat with i from 1 to count of argv
                 set docUUID to item i of argv
-                set theRecord to get record with uuid docUUID
-                if theRecord is missing value then
+                try
+                    set theRecord to get record with uuid docUUID
+                    if theRecord is missing value then
+                        return "{\"error\":\"Document not found: " & docUUID & "\"}"
+                    end if
+                    set end of documentsList to theRecord
+                on error
                     return "{\"error\":\"Document not found: " & docUUID & "\"}"
-                end if
-                set end of documents to theRecord
+                end try
             end repeat
             
             -- Analyze each document
             set docAnalyses to {}
-            repeat with doc in documents
+            repeat with doc in documentsList
                 set docAnalysis to my analyzeDocument(doc)
                 set end of docAnalyses to docAnalysis
             end repeat
             
             -- Compare all pairs
             set comparisons to {}
-            repeat with i from 1 to (count of documents) - 1
-                repeat with j from (i + 1) to count of documents
+            repeat with i from 1 to (count of documentsList) - 1
+                repeat with j from (i + 1) to count of documentsList
                     set comparison to my compareDocumentPair(item i of docAnalyses, item j of docAnalyses)
                     set end of comparisons to comparison
                 end repeat
@@ -37,7 +41,7 @@ on run argv
             
             -- Build response
             set jsonOutput to "{"
-            set jsonOutput to jsonOutput & "\"documentCount\":" & (count of documents) & ","
+            set jsonOutput to jsonOutput & "\"documentCount\":" & (count of documentsList) & ","
             set jsonOutput to jsonOutput & "\"documents\":["
             
             repeat with i from 1 to count of docAnalyses
@@ -103,14 +107,28 @@ end run
 -- Analyze a single document
 on analyzeDocument(theRecord)
     tell application id "DNtp"
-        set docText to plain text of theRecord
+        try
+            set docText to plain text of theRecord
+        on error
+            -- If plain text is not available, try to get text content
+            try
+                set docText to text of theRecord
+            on error
+                set docText to ""
+            end try
+        end try
         set docUUID to uuid of theRecord
         set docName to name of theRecord
         set docTags to tags of theRecord
         
         -- Word frequency analysis
-        set wordList to words of docText
-        set wordCount to count of wordList
+        if docText is "" then
+            set wordList to {}
+            set wordCount to 0
+        else
+            set wordList to words of docText
+            set wordCount to count of wordList
+        end if
         set uniqueWords to {}
         set wordFreq to {}
         
