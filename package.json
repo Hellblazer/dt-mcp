@@ -35,9 +35,6 @@
   "devDependencies": {
     "eslint": "^8.0.0"
   },
-  "peerDependencies": {
-    "devonthink": ">=3.0.0"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hal.hildebrand/dt-mcp.git"
