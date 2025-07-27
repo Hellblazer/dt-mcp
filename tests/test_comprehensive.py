@@ -49,6 +49,10 @@ class DEVONthinkMCPTester:
         
         success, result = self.run_tool(tool_name, params)
         
+        # Check if result contains an error field, even if subprocess succeeded
+        if success and isinstance(result, dict) and 'error' in result:
+            success = False
+            
         self.test_results[tool_name] = {
             "description": description,
             "success": success,
@@ -125,7 +129,7 @@ class DEVONthinkMCPTester:
         # Test research workflows
         self.test_tool(
             'automate_research',
-            {'topic': 'artificial intelligence'},
+            {'workflowType': 'explore_topic', 'queryOrUUID': 'artificial intelligence'},
             "Explore topic research workflow"
         )
         

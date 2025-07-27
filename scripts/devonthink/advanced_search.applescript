@@ -38,7 +38,9 @@ on run argv
                     end if
                 end repeat
                 if targetDB is not missing value then
-                    set searchResults to search searchQuery in targetDB
+                    tell targetDB
+                        set searchResults to search searchQuery
+                    end tell
                 else
                     return "{\"error\":\"Database not found: " & databaseName & "\"}"
                 end if

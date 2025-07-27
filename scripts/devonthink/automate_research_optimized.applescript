@@ -61,7 +61,7 @@ on organizeFindings_Optimized(searchQuery, maxResults)
             repeat with j from i to endIndex
                 set doc to item j of searchResults
                 set docScore to my calculateDocScore_Optimized(doc)
-                set end of scoredDocs to {doc:doc, score:docScore, docName:(name of doc)}
+                set end of scoredDocs to {doc:doc, |score|:docScore, docName:(name of doc)}
                 set processedCount to processedCount + 1
             end repeat
             
@@ -98,8 +98,8 @@ on organizeFindings_Optimized(searchQuery, maxResults)
         -- Add documents to groups based on score
         repeat with i from 1 to count of scoredDocs
             set scoredDoc to item i of scoredDocs
-            set doc to doc of scoredDoc
-            set docScore to score of scoredDoc
+            set doc to scoredDoc's doc
+            set docScore to scoredDoc's |score|
             
             if docScore > 10 then
                 replicate record doc to highRelevance
@@ -188,12 +188,12 @@ end quickSort
 
 on partition(theList, leftIndex, rightIndex)
     set pivotRecord to item rightIndex of theList
-    set pivotValue to score of pivotRecord
+    set pivotValue to pivotRecord's |score|
     set i to leftIndex - 1
     
     repeat with j from leftIndex to rightIndex - 1
         set currentRecord to item j of theList
-        if score of currentRecord >= pivotValue then
+        if currentRecord's |score| >= pivotValue then
             set i to i + 1
             set temp to item i of theList
             set item i of theList to item j of theList

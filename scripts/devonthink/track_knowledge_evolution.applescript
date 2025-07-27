@@ -216,7 +216,27 @@ on identifyTrends(databaseName)
         if databaseName is "" then
             set searchResults to search "*"
         else
-            set searchResults to search "*" in database databaseName
+            -- Find database by name
+            set targetDB to missing value
+            repeat with db in databases
+                if name of db is databaseName then
+                    set targetDB to db
+                    exit repeat
+                end if
+            end repeat
+            
+            if targetDB is not missing value then
+                tell targetDB
+                    set searchResults to search "*"
+                end tell
+            else
+                -- Return error if database not found
+                set jsonOutput to "{"
+                set jsonOutput to jsonOutput & "\"error\":\"Database not found: " & databaseName & "\","
+                set jsonOutput to jsonOutput & "\"database_requested\":\"" & databaseName & "\""
+                set jsonOutput to jsonOutput & "}"
+                return jsonOutput
+            end if
         end if
         
         -- Separate recent from older

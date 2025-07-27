@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { ErrorTypes, createError, errorHandlers, validators, formatResponse, createSuccessResponse } from '../utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,11 +20,12 @@ export class DEVONthinkService {
       const { stdout } = await execAsync(`osascript "${checkScript}"`);
       const result = JSON.parse(stdout.trim());
       if (result.status === 'error') {
-        throw new Error(result.message);
+        throw errorHandlers.devonthinkNotRunning();
       }
       return result;
     } catch (error) {
-      throw new Error(`Failed to check DEVONthink status: ${error.message}`);
+      if (error.error) throw error;
+      throw errorHandlers.devonthinkNotRunning();
     }
   }
 
@@ -49,39 +51,96 @@ export class DEVONthinkService {
 
       // Parse JSON output
       try {
-        return JSON.parse(stdout.trim());
-      } catch {
-        // If not JSON, return as string
-        return stdout.trim();
+        const parsed = JSON.parse(stdout.trim());
+        // Check if the response has an error field
+        if (parsed && parsed.error) {
+          throw new Error(parsed.error);
+        }
+        return parsed;
+      } catch (e) {
+        // If JSON parsing failed, return as string
+        if (e instanceof SyntaxError) {
+          return stdout.trim();
+        }
+        // Re-throw if it's an actual error
+        throw e;
       }
     } catch (error) {
-      throw new Error(`AppleScript execution failed: ${error.message}`);
+      throw errorHandlers.scriptExecutionFailed(scriptName, error.message);
     }
   }
 
   async search(query, database, limit = 50, offset = 0) {
+    // Validate parameters
+    limit = validators.validateLimit(limit);
+    offset = validators.validateOffset(offset);
+    
     const args = database ? [query, database] : [query];
-    const allResults = await this.runAppleScript('search', args);
     
-    // Apply pagination
-    const totalCount = allResults.length;
-    const paginatedResults = allResults.slice(offset, offset + limit);
-    
-    return {
-      query,
-      database: database || 'all',
-      results: paginatedResults,
-      pagination: {
-        offset,
-        limit,
-        totalCount,
-        hasMore: offset + limit < totalCount,
-        nextOffset: offset + limit < totalCount ? offset + limit : null
+    try {
+      const response = await this.runAppleScript('search', args);
+      
+      // Handle the new response format
+      let results, totalFound, wasTruncated;
+      
+      // If response is a string, try to parse it
+      let parsedResponse = response;
+      if (typeof response === 'string') {
+        try {
+          parsedResponse = JSON.parse(response);
+        } catch (e) {
+          // If parsing fails, treat as error
+          results = [];
+          totalFound = 0;
+          wasTruncated = false;
+        }
       }
-    };
+      
+      if (parsedResponse && parsedResponse.results !== undefined) {
+        // New format with metadata
+        results = parsedResponse.results || [];
+        totalFound = parsedResponse.totalFound || results.length;
+        wasTruncated = parsedResponse.truncated || false;
+      } else if (Array.isArray(parsedResponse)) {
+        // Legacy format - just an array
+        results = parsedResponse;
+        totalFound = results.length;
+        wasTruncated = false;
+      } else {
+        // Error or unexpected format
+        results = [];
+        totalFound = 0;
+        wasTruncated = false;
+      }
+      
+      // Apply pagination
+      const paginatedResults = results.slice(offset, offset + limit);
+      
+      return createSuccessResponse({
+        query,
+        database: database || 'all',
+        results: paginatedResults,
+        pagination: {
+          offset,
+          limit,
+          totalCount: totalFound,
+          hasMore: offset + limit < totalFound,
+          nextOffset: offset + limit < totalFound ? offset + limit : null,
+          wasTruncated
+        }
+      }, {
+        tool: 'search_devonthink',
+        resultsReturned: paginatedResults.length
+      });
+    } catch (error) {
+      throw new Error(`Search failed: ${error.message}`);
+    }
   }
 
   async readDocument(uuid, includeContent = true) {
+    // Validate UUID
+    validators.validateUUID(uuid, 'uuid');
+    
     const format = includeContent ? 'full' : 'metadata';
     const result = await this.runAppleScript('read_document', [uuid, format]);
     
@@ -121,25 +180,67 @@ export class DEVONthinkService {
   }
 
   async batchSearch(queries, database, maxResultsPerQuery = 20) {
+    // Validate queries array
+    if (!Array.isArray(queries) || queries.length === 0) {
+      throw errorHandlers.invalidParameter('queries', queries, 'non-empty array of search queries');
+    }
+    
+    // Validate maxResultsPerQuery
+    maxResultsPerQuery = validators.validateLimit(maxResultsPerQuery, 20, 100);
+    
     // Run multiple searches in parallel with result limiting
     const searchPromises = queries.map(async query => {
       const result = await this.search(query, database, maxResultsPerQuery, 0);
-      // Return just the results array for batch search (not pagination info)
-      return result.results || result;
+      // Extract data from standardized response
+      const searchData = result.data || result;
+      return searchData.results || [];
     });
+    
     const results = await Promise.all(searchPromises);
-    return results.reduce((acc, curr, index) => {
+    const resultMap = results.reduce((acc, curr, index) => {
       acc[queries[index]] = curr;
       return acc;
     }, {});
+    
+    return createSuccessResponse({
+      queries: queries,
+      database: database || 'all',
+      results: resultMap,
+      maxResultsPerQuery: maxResultsPerQuery
+    }, {
+      tool: 'batch_search',
+      queryCount: queries.length,
+      totalResults: Object.values(resultMap).reduce((sum, arr) => sum + arr.length, 0)
+    });
   }
 
   async batchReadDocuments(uuids, includeContent = false) {
+    // Validate uuids array
+    if (!Array.isArray(uuids) || uuids.length === 0) {
+      throw errorHandlers.invalidParameter('uuids', uuids, 'non-empty array of document UUIDs');
+    }
+    
     // Read multiple documents in parallel
     const readPromises = uuids.map(uuid => 
-      this.readDocument(uuid, includeContent).catch(err => ({ error: err.message, uuid }))
+      this.readDocument(uuid, includeContent)
+        .then(result => ({ status: 'success', uuid, document: result }))
+        .catch(err => ({ status: 'error', uuid, error: err.message }))
     );
-    return await Promise.all(readPromises);
+    
+    const results = await Promise.all(readPromises);
+    const successful = results.filter(r => r.status === 'success');
+    const failed = results.filter(r => r.status === 'error');
+    
+    return createSuccessResponse({
+      documents: successful.map(r => r.document),
+      failures: failed,
+      includeContent: includeContent
+    }, {
+      tool: 'batch_read_documents',
+      totalRequested: uuids.length,
+      successCount: successful.length,
+      failureCount: failed.length
+    });
   }
 
   async findConnections(uuid, maxResults = 10) {
@@ -189,16 +290,37 @@ export class DEVONthinkService {
   }
 
   async analyzeDocumentSimilarity(uuids) {
-    return await this.runAppleScript('analyze_document_similarity', uuids);
+    // Use optimized version to prevent timeouts
+    return await this.runAppleScript('analyze_document_similarity_optimized', uuids);
   }
 
   async synthesizeDocuments(documentUUIDs, synthesisType = 'summary') {
-    // Ensure documentUUIDs is an array
-    if (!Array.isArray(documentUUIDs)) {
-      throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
-    }
-    // Use native AI classification for synthesis instead of manual word frequency
+    // Validate documentUUIDs array
+    validators.validateNonEmptyArray(documentUUIDs, 'documentUUIDs');
+    
+    // Validate each UUID
+    documentUUIDs.forEach((uuid, index) => {
+      validators.validateUUID(uuid, `documentUUIDs[${index}]`);
+    });
+    
+    // Use optimized version for better performance
     const args = [synthesisType, ...documentUUIDs];
+    
+    // Try optimized version first
+    try {
+      const result = await this.runAppleScript('synthesize_documents_optimized', args);
+      // Check if we got valid results
+      const parsed = JSON.parse(result);
+      if (parsed.document_count > 0 && parsed.document_titles && parsed.document_titles.length > 0) {
+        return result;
+      }
+      // If no documents processed, fall back to native version
+      console.log('Optimized version returned no documents, trying native version');
+    } catch (error) {
+      console.warn('Optimized synthesis failed:', error.message);
+    }
+    
+    // Fallback to native version
     return await this.runAppleScript('synthesize_documents_native', args);
   }
 

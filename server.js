@@ -510,7 +510,7 @@ async function main() {
 
     server.tool(
       'analyze_document_similarity',
-      'Compare multiple documents for similarity based on content and metadata',
+      'Compare multiple documents for similarity based on content and metadata (performance-optimized)',
       {
         uuids: z.array(z.string()).min(2).describe('Array of document UUIDs to compare (minimum 2)')
       },
@@ -532,7 +532,7 @@ async function main() {
     // Phase 4: Knowledge Synthesis
     server.tool(
       'synthesize_documents',
-      'Create intelligent synthesis from multiple documents',
+      'Create intelligent synthesis from multiple documents (performance-optimized with automatic fallback)',
       {
         documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to synthesize'),
         synthesisType: z.enum(['summary', 'consensus', 'insights']).optional().describe('Type of synthesis (default: summary)')

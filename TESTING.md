@@ -227,9 +227,10 @@ npm run test:tool analyze_document_similarity '{"uuids": ["UUID1", "UUID2", "UUI
 ### Knowledge Synthesis Testing
 
 ```bash
-# Test different synthesis types
+# Test different synthesis types (performance-optimized)
 npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2"], "synthesisType": "summary"}'
 npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2"], "synthesisType": "consensus"}'
+npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2"], "synthesisType": "insights"}'
 
 # Test theme extraction
 npm run test:tool extract_themes '{"documentUUIDs": ["UUID1", "UUID2", "UUID3"]}'
@@ -239,6 +240,34 @@ npm run test:tool track_topic_evolution '{"topic": "artificial intelligence", "t
 
 # Test trend identification
 npm run test:tool identify_trends '{}'
+```
+
+### Performance Testing
+
+```bash
+# Test optimized operations (should complete in <1 second)
+time npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2"], "synthesisType": "summary"}'
+time npm run test:tool analyze_document_similarity '{"uuids": ["UUID1", "UUID2", "UUID3"]}'
+
+# Compare with larger document sets
+npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2", "UUID3", "UUID4", "UUID5"], "synthesisType": "summary"}'
+
+# Test fallback mechanisms (should auto-fallback to native if optimized fails)
+npm run test:tool synthesize_documents '{"documentUUIDs": ["INVALID-UUID"], "synthesisType": "summary"}'
+```
+
+### Optimization Validation
+
+```bash
+# Verify optimized scripts exist
+ls -la scripts/devonthink/*optimized*
+
+# Validate optimized script syntax
+osacompile -o /tmp/test.scpt scripts/devonthink/synthesize_documents_optimized.applescript
+osacompile -o /tmp/test.scpt scripts/devonthink/analyze_document_similarity_optimized.applescript
+
+# Test performance characteristics
+npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2"], "synthesisType": "summary"}' | grep -E "(method|performance_note)"
 ```
 
 ## Troubleshooting Tests
@@ -294,6 +323,23 @@ osascript scripts/devonthink/check_devonthink.applescript
 ```
 
 ## Test Results Analysis
+
+### Performance Benchmarks
+
+Expected performance for optimized operations:
+
+| Tool | Expected Time | Sampling | Notes |
+|------|--------------|----------|-------|
+| synthesize_documents | <1 second | 200 words/doc | Auto-fallback to native |
+| analyze_document_similarity | <1 second | 100 words/doc | Maintains accuracy |
+| search_devonthink | <0.5 seconds | N/A | Enhanced JSON escaping |
+| classify_document | <1 second | N/A | Native DEVONthink AI |
+
+Performance regression indicators:
+- synthesize_documents taking >5 seconds (check fallback)
+- analyze_document_similarity taking >2 seconds (optimization issue)
+- JSON parse errors in search (escaping problem)
+- "optimized version returned no documents" warnings
 
 ### Comprehensive Test Results
 

@@ -139,8 +139,22 @@ async function main() {
         result = await devonthink.createKnowledgeTimeline(params.documentUUIDs);
         break;
         
+      case 'advanced_search':
+        result = await devonthink.advancedSearch(params.query, params.database, params.searchIn, params.maxResults, params.sortBy, params.searchScope);
+        break;
+        
+      case 'list_smart_groups':
+        result = await devonthink.listSmartGroups(params.database, params.limit, params.offset);
+        break;
+        
       default:
         throw new Error(`Unknown tool: ${toolName}`);
+    }
+    
+    // Check if result contains an error and exit with error code if so
+    if (result && typeof result === 'object' && 'error' in result) {
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(1); // Exit with error code for tool errors
     }
     
     console.log(JSON.stringify(result, null, 2));

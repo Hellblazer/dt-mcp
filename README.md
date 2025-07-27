@@ -98,13 +98,13 @@ create_collection          # Research project collections
 ### Document Intelligence (3 tools)
 ```bash
 analyze_document           # Complexity & readability analysis
-analyze_document_similarity # Multi-document comparison
+analyze_document_similarity # Multi-document comparison (performance-optimized)
 batch_read_documents       # Parallel document processing
 ```
 
-### Knowledge Synthesis (6 tools)
+### Knowledge Synthesis (8 tools)
 ```bash
-synthesize_documents       # Multi-document synthesis (summary/consensus/insights)
+synthesize_documents       # Multi-document synthesis (performance-optimized)
 extract_themes             # AI theme identification
 classify_document          # Native DEVONthink AI classification
 get_similar_documents      # AI-powered similarity finding
@@ -196,12 +196,22 @@ Request   Thin Wrapper   Native AI
 This server wraps DEVONthink 4's native AI capabilities rather than reimplementing them, providing direct access to trained models and optimized algorithms.
 
 ### Performance
-| Operation | Approach | Performance |
-|-----------|----------|-------------|
-| Theme Extraction | Native AI | 0.26s |
-| Document Similarity | AI compare | Enhanced relevance |
-| Classification | AI classification | Semantic accuracy |
-| Clustering | AI grouping | Reduced complexity |
+
+#### Optimized Operations
+Several tools have performance-optimized variants that sample document content for faster processing:
+
+| Operation | Original Time | Optimized Time | Sampling Strategy |
+|-----------|--------------|----------------|-------------------|
+| synthesize_documents | 30+ seconds | <1 second | First 200 words/doc |
+| analyze_document_similarity | 2+ minutes | <1 second | First 100 words/doc |
+| Theme Extraction | Variable | 0.26s | Native AI classification |
+| Classification | Variable | <1s | Native AI models |
+
+#### Performance Features
+- **Automatic Optimization**: Tools automatically use optimized versions when available
+- **Intelligent Fallback**: Falls back to full analysis when optimized version returns insufficient data
+- **Configurable Timeouts**: Long operations have configurable timeout protection
+- **Result Validation**: Ensures quality results before accepting optimized output
 
 ## Testing & Quality
 
@@ -222,9 +232,10 @@ npm run test:mcp
 
 ### Quality Metrics
 - **Success Rate**: >95% for production builds
-- **Performance**: Sub-second for basic operations, <30s for complex synthesis
-- **Error Handling**: Structured JSON error responses
-- **Documentation**: Complete tool coverage with examples
+- **Performance**: Sub-second for most operations with intelligent optimization
+- **Error Handling**: Structured JSON error responses with graceful fallbacks
+- **Documentation**: Complete tool coverage with examples and performance notes
+- **Code Quality**: AppleScript linting for reserved words and syntax validation
 
 ## Development
 
@@ -237,9 +248,12 @@ npm run test:mcp
 
 ### Performance Guidelines
 - Use DEVONthink's native AI features when available
+- Create optimized versions for computationally expensive operations
+- Sample document content intelligently (e.g., first N words)
 - Implement structural algorithms (BFS, pathfinding) directly
-- Add timeout protection for long operations
-- Include progress indicators for complex workflows
+- Add timeout protection and fallback mechanisms
+- Validate results before accepting optimized output
+- Include performance metrics in tool responses
 
 ## Project Status
 
