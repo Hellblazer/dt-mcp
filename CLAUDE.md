@@ -2,6 +2,24 @@
 
 Model Context Protocol (MCP) server for DEVONthink integration with Claude Desktop.
 
+## AI-Friendly Features
+
+The DEVONthink MCP server includes several features specifically designed to help AI clients:
+
+1. **get_tool_help** - A meta-tool that provides detailed help about any other tool
+   - Use `{"toolName": "list"}` to see all available tools
+   - Use `{"toolName": "search_devonthink", "examples": true}` for examples
+
+2. **Rich Tool Descriptions** - Every tool includes:
+   - When to use it
+   - Common patterns
+   - Parameter details with examples
+   - Expected outputs and errors
+
+3. **Parameter Validation** - Clear error messages for JSON formatting issues
+
+4. **Built-in Documentation** - Available through the MCP protocol itself
+
 ## Current Status
 
 Version: 2.0.0  

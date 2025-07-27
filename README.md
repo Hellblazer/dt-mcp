@@ -284,6 +284,23 @@ python3 test_comprehensive.py
 
 ## API Documentation
 
+### Parameter Format (Important!)
+
+All MCP tool parameters must use proper JSON syntax. Common mistakes:
+
+**❌ INCORRECT - Backticks or single quotes:**
+```
+{ `uuid`: `ABC123` }          // Wrong - backticks
+{ 'uuid': 'ABC123' }          // Wrong - single quotes
+```
+
+**✅ CORRECT - Double quotes only:**
+```json
+{ "uuid": "ABC123" }          // Correct - double quotes
+```
+
+📖 **See [PARAMETER_EXAMPLES.md](PARAMETER_EXAMPLES.md) for complete parameter examples for all tools.**
+
 ### Search Syntax
 DEVONthink's powerful search syntax is fully supported:
 ```

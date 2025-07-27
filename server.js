@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
+import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -651,6 +652,73 @@ async function main() {
             content: [{ type: 'text', text: `Error: ${error.message}` }]
           };
         }
+      }
+    );
+    
+    // Meta tool: Help system for AI clients
+    server.tool(
+      'get_tool_help',
+      `Get detailed help and examples for using DEVONthink MCP tools.
+      
+      This meta-tool helps AI clients understand how to use other tools effectively.
+      
+      USAGE PATTERNS:
+      - List all tools: {"toolName": "list"}
+      - Get specific help: {"toolName": "search_devonthink"}
+      - Get parameter examples: {"toolName": "synthesize_documents", "examples": true}
+      
+      BENEFITS FOR AI:
+      - Understand when to use each tool
+      - See parameter formats and examples
+      - Learn about error scenarios
+      - Discover tool combinations`,
+      {
+        toolName: z.string().describe('Tool name to get help for, or "list" for all tools'),
+        examples: z.boolean().optional().describe('Include usage examples')
+      },
+      async ({ toolName, examples = false }) => {
+        logger.info(`Getting help for tool: ${toolName}`);
+        
+        if (toolName === 'list') {
+          const toolList = Object.keys(toolDescriptions).map(name => {
+            const desc = toolDescriptions[name];
+            return `- ${name}: ${desc.brief}`;
+          }).join('\n');
+          
+          return {
+            content: [{
+              type: 'text',
+              text: `Available DEVONthink MCP Tools:\n\n${toolList}\n\nUse get_tool_help with a specific tool name for detailed information.`
+            }]
+          };
+        }
+        
+        const desc = toolDescriptions[toolName];
+        if (!desc) {
+          return {
+            content: [{
+              type: 'text',
+              text: `Unknown tool: ${toolName}. Use {"toolName": "list"} to see all available tools.`
+            }]
+          };
+        }
+        
+        let helpText = `# ${toolName}\n\n${desc.brief}\n\n## Details\n${desc.detailed}\n\n`;
+        
+        if (Object.keys(desc.parameterHelp).length > 0) {
+          helpText += `## Parameters\n`;
+          for (const [param, help] of Object.entries(desc.parameterHelp)) {
+            helpText += `- **${param}**: ${help}\n`;
+          }
+        }
+        
+        if (examples && toolName in exampleUsage) {
+          helpText += `\n## Examples\n${exampleUsage[toolName]}`;
+        }
+        
+        return {
+          content: [{ type: 'text', text: helpText }]
+        };
       }
     );
     
