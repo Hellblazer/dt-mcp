@@ -144,6 +144,23 @@ graph LR
 
 ## Tool Reference
 
+### AI Helper Tools (1 tool)
+| Tool | Description | Usage |
+|------|-------------|-------|
+| `get_tool_help` | Get detailed help for any tool | `toolName`, `examples` (optional) |
+
+**Usage Examples:**
+```
+# List all available tools
+get_tool_help({"toolName": "list"})
+
+# Get detailed help for search
+get_tool_help({"toolName": "search_devonthink"})
+
+# Get help with examples
+get_tool_help({"toolName": "synthesize_documents", "examples": true})
+```
+
 ### Core Operations (8 tools)
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -188,6 +205,48 @@ graph LR
 | `track_topic_evolution` | Topic change over time | Timeline analysis |
 | `create_knowledge_timeline` | Chronological knowledge map | Temporal progression |
 | `identify_trends` | Trending topics detection | Frequency analysis |
+
+## AI-Friendly Features
+
+The server includes features designed specifically for AI clients:
+
+### System Prompt Integration
+The server exposes system prompts to AI clients through the MCP protocol. These prompts are defined in `src/system-prompt.js` and registered in the server:
+
+**Available Prompts:**
+- `devonthink_guide` - Comprehensive guide for using all 25+ tools
+- `research_workflow` - Best practices for research tasks
+- `analysis_workflow` - Guide for document analysis
+- `organization_workflow` - Tips for organizing knowledge
+
+**How AI Clients Access Prompts:**
+When connected via MCP, AI clients automatically receive these prompts to understand:
+- Available capabilities across 25+ tools
+- Proper parameter formatting (JSON syntax)
+- Common workflow patterns
+- Error handling guidance
+
+### Interactive Help Tool
+The `get_tool_help` meta-tool provides:
+- Complete tool listing
+- Detailed parameter descriptions
+- Usage examples
+- Common error scenarios
+
+```javascript
+// List all available tools
+get_tool_help({"toolName": "list"})
+
+// Get detailed help with examples
+get_tool_help({"toolName": "search_devonthink", "examples": true})
+```
+
+### Enhanced Tool Descriptions
+Every tool includes comprehensive metadata in `src/tool-descriptions.js`:
+- When to use the tool
+- Common usage patterns
+- Parameter validation rules
+- Expected outputs and errors
 
 ## Testing & Quality
 

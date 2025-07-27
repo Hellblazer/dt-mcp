@@ -7,6 +7,7 @@ import path from 'path';
 import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
+import { systemPrompt, contextPrompts } from './src/system-prompt.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -718,6 +719,63 @@ async function main() {
         
         return {
           content: [{ type: 'text', text: helpText }]
+        };
+      }
+    );
+    
+    // Register system prompts for AI clients
+    server.prompt(
+      'devonthink_guide',
+      'Comprehensive guide for using DEVONthink MCP tools effectively',
+      {},
+      async () => {
+        return {
+          content: [{
+            type: 'text',
+            text: systemPrompt
+          }]
+        };
+      }
+    );
+    
+    server.prompt(
+      'research_workflow',
+      'Best practices for research workflows with DEVONthink',
+      {},
+      async () => {
+        return {
+          content: [{
+            type: 'text',
+            text: contextPrompts.research
+          }]
+        };
+      }
+    );
+    
+    server.prompt(
+      'analysis_workflow',
+      'Guide for document analysis tasks',
+      {},
+      async () => {
+        return {
+          content: [{
+            type: 'text',
+            text: contextPrompts.analysis
+          }]
+        };
+      }
+    );
+    
+    server.prompt(
+      'organization_workflow',
+      'Tips for organizing knowledge in DEVONthink',
+      {},
+      async () => {
+        return {
+          content: [{
+            type: 'text',
+            text: contextPrompts.organization
+          }]
         };
       }
     );
