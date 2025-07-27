@@ -274,6 +274,97 @@ async function main() {
         }
       }
     );
+
+    // Practical advanced features
+    server.tool(
+      'find_connections',
+      'Find connections between a document and other documents (AI-based, references, etc.)',
+      {
+        uuid: z.string().describe('Document UUID'),
+        maxResults: z.number().optional().describe('Maximum results to return (default: 10)')
+      },
+      async ({ uuid, maxResults = 10 }) => {
+        logger.info(`Finding connections for document: ${uuid}`);
+        try {
+          const connections = await devonthink.findConnections(uuid, maxResults);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(connections, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'compare_documents',
+      'Compare two documents for similarity based on tags and content metrics',
+      {
+        uuid1: z.string().describe('First document UUID'),
+        uuid2: z.string().describe('Second document UUID')
+      },
+      async ({ uuid1, uuid2 }) => {
+        logger.info(`Comparing documents: ${uuid1} and ${uuid2}`);
+        try {
+          const comparison = await devonthink.compareDocuments(uuid1, uuid2);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(comparison, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'create_collection',
+      'Create a new document collection (research thread) in DEVONthink',
+      {
+        name: z.string().describe('Collection name'),
+        description: z.string().describe('Collection description'),
+        database: z.string().optional().describe('Target database name (optional)')
+      },
+      async ({ name, description, database }) => {
+        logger.info(`Creating collection: ${name}`);
+        try {
+          const collection = await devonthink.createCollection(name, description, database);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(collection, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'add_to_collection',
+      'Add a document to an existing collection',
+      {
+        collectionUUID: z.string().describe('Collection UUID'),
+        documentUUID: z.string().describe('Document UUID to add'),
+        notes: z.string().optional().describe('Optional notes about why this document was added')
+      },
+      async ({ collectionUUID, documentUUID, notes = '' }) => {
+        logger.info(`Adding document ${documentUUID} to collection ${collectionUUID}`);
+        try {
+          const result = await devonthink.addToCollection(collectionUUID, documentUUID, notes);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
     
     // Use STDIO transport
     const transport = new StdioServerTransport();

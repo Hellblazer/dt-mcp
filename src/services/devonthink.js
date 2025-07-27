@@ -114,4 +114,21 @@ export class DEVONthinkService {
     );
     return await Promise.all(readPromises);
   }
+
+  async findConnections(uuid, maxResults = 10) {
+    return await this.runAppleScript('find_connections', [uuid, maxResults.toString()]);
+  }
+
+  async compareDocuments(uuid1, uuid2) {
+    return await this.runAppleScript('compare_documents', [uuid1, uuid2]);
+  }
+
+  async createCollection(name, description, database) {
+    const args = database ? [name, description, database] : [name, description];
+    return await this.runAppleScript('create_collection', args);
+  }
+
+  async addToCollection(collectionUUID, documentUUID, notes = '') {
+    return await this.runAppleScript('add_to_collection', [collectionUUID, documentUUID, notes]);
+  }
 }
