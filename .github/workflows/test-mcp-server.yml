@@ -34,9 +34,15 @@ jobs:
     - name: Test AppleScript syntax
       run: |
         # Test syntax of key AppleScript files
-        osascript scripts/devonthink/search.applescript > /dev/null 2>&1 || echo "search.applescript syntax check failed"
-        osascript scripts/devonthink/knowledge_synthesis.applescript > /dev/null 2>&1 || echo "knowledge_synthesis.applescript syntax check failed"
-        osascript scripts/devonthink/track_knowledge_evolution.applescript > /dev/null 2>&1 || echo "track_knowledge_evolution.applescript syntax check failed"
+        # Note: These will fail on CI without DEVONthink installed, but we check syntax anyway
+        echo "Testing AppleScript syntax (warnings expected on CI)..."
+        osascript -c 'tell application "System Events" to return "test"' || echo "AppleScript environment check"
+        
+        # Check syntax without executing (will still fail without DEVONthink but validates basic syntax)
+        osacompile -o /dev/null scripts/devonthink/search.applescript 2>&1 || echo "⚠️ search.applescript - DEVONthink not available on CI"
+        osacompile -o /dev/null scripts/devonthink/knowledge_synthesis.applescript 2>&1 || echo "⚠️ knowledge_synthesis.applescript - DEVONthink not available on CI"
+        osacompile -o /dev/null scripts/devonthink/track_knowledge_evolution.applescript 2>&1 || echo "⚠️ track_knowledge_evolution.applescript - DEVONthink not available on CI"
+        osacompile -o /dev/null scripts/devonthink/build_knowledge_graph.applescript 2>&1 || echo "⚠️ build_knowledge_graph.applescript - DEVONthink not available on CI"
         
     - name: Test server startup
       run: |
