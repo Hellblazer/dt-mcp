@@ -1,5 +1,5 @@
--- Build Knowledge Graph with depth control
--- Traverses document relationships to create a graph structure
+-- Build Knowledge Graph with iterative (non-recursive) approach
+-- Traverses document relationships using a queue-based algorithm
 
 on run argv
     if (count of argv) < 1 then
@@ -24,8 +24,8 @@ on run argv
             set allNodes to {}
             set allEdges to {}
             
-            -- Start traversal
-            my traverseGraph(rootRecord, 0, maxDepth, visitedNodes, allNodes, allEdges)
+            -- Start iterative traversal
+            my buildGraphIteratively(rootRecord, maxDepth, visitedNodes, allNodes, allEdges)
             
             -- Build JSON response
             set jsonOutput to "{"
@@ -45,89 +45,121 @@ on run argv
     end tell
 end run
 
-on traverseGraph(theRecord, currentDepth, maxDepth, visitedNodes, allNodes, allEdges)
+on buildGraphIteratively(rootRecord, maxDepth, visitedNodes, allNodes, allEdges)
     tell application id "DNtp"
-        set recordUUID to uuid of theRecord
+        -- Initialize queue with root record at depth 0
+        -- Each queue item is a list: {record, depth}
+        set traversalQueue to {{rootRecord, 0}}
         
-        -- Check if already visited
-        if visitedNodes contains recordUUID then return
-        set end of visitedNodes to recordUUID
-        
-        -- Add node
-        set nodeInfo to {nodeUUID:recordUUID, nodeName:(name of theRecord), nodeType:(type of theRecord as string), nodeDepth:currentDepth}
-        set end of allNodes to nodeInfo
-        
-        -- Stop if max depth reached
-        if currentDepth ≥ maxDepth then return
-        
-        -- Get AI-based related documents
-        try
-            set relatedDocs to compare record theRecord
-            set maxRelated to 5  -- Limit to prevent explosion
-            set relatedCount to 0
-            repeat with relatedDoc in relatedDocs
-                if relatedCount >= maxRelated then exit repeat
-                set relatedCount to relatedCount + 1
-                set relatedUUID to uuid of relatedDoc
-                set edgeInfo to {fromUUID:recordUUID, toUUID:relatedUUID, linkType:"ai_related", linkWeight:0.8}
-                set end of allEdges to edgeInfo
+        repeat while length of traversalQueue > 0
+            -- Dequeue first item (FIFO)
+            set currentItem to item 1 of traversalQueue
+            set currentRecord to item 1 of currentItem
+            set currentDepth to item 2 of currentItem
+            
+            -- Remove first item from queue
+            if length of traversalQueue > 1 then
+                set traversalQueue to items 2 through -1 of traversalQueue
+            else
+                set traversalQueue to {}
+            end if
+            
+            set recordUUID to uuid of currentRecord
+            
+            -- Check if already visited
+            if visitedNodes contains recordUUID then
+                -- Skip to next iteration
+            else
+                set end of visitedNodes to recordUUID
                 
-                -- Recursive traversal
-                my traverseGraph(relatedDoc, currentDepth + 1, maxDepth, visitedNodes, allNodes, allEdges)
-            end repeat
-        end try
-        
-        -- Get incoming references
-        try
-            set incomingDocs to incoming references of theRecord
-            set maxIncoming to 3
-            set incomingCount to 0
-            repeat with incomingDoc in incomingDocs
-                if incomingCount >= maxIncoming then exit repeat
-                set incomingCount to incomingCount + 1
-                set incomingUUID to uuid of incomingDoc
-                set edgeInfo to {fromUUID:incomingUUID, toUUID:recordUUID, linkType:"reference", linkWeight:1.0}
-                set end of allEdges to edgeInfo
+                -- Add node
+                set nodeInfo to {nodeUUID:recordUUID, nodeName:(name of currentRecord), nodeType:(type of currentRecord as string), nodeDepth:currentDepth}
+                set end of allNodes to nodeInfo
                 
-                my traverseGraph(incomingDoc, currentDepth + 1, maxDepth, visitedNodes, allNodes, allEdges)
-            end repeat
-        end try
-        
-        -- Get outgoing references
-        try
-            set outgoingDocs to outgoing references of theRecord
-            set maxOutgoing to 3
-            set outgoingCount to 0
-            repeat with outgoingDoc in outgoingDocs
-                if outgoingCount >= maxOutgoing then exit repeat
-                set outgoingCount to outgoingCount + 1
-                set outgoingUUID to uuid of outgoingDoc
-                set edgeInfo to {fromUUID:recordUUID, toUUID:outgoingUUID, linkType:"reference", linkWeight:1.0}
-                set end of allEdges to edgeInfo
-                
-                my traverseGraph(outgoingDoc, currentDepth + 1, maxDepth, visitedNodes, allNodes, allEdges)
-            end repeat
-        end try
-        
-        -- Get replicants (documents that are copies in other locations)
-        try
-            set replicantDocs to replicants of theRecord
-            set maxReplicants to 2
-            set replicantCount to 0
-            repeat with replicantDoc in replicantDocs
-                if replicantCount >= maxReplicants then exit repeat
-                set replicantCount to replicantCount + 1
-                set replicantUUID to uuid of replicantDoc
-                if replicantUUID is not equal to recordUUID then
-                    set edgeInfo to {fromUUID:recordUUID, toUUID:replicantUUID, linkType:"replicant", linkWeight:0.9}
-                    set end of allEdges to edgeInfo
+                -- Stop expanding if max depth reached
+                if currentDepth < maxDepth then
+                    -- Get AI-based related documents
+                    try
+                        set relatedDocs to compare record currentRecord
+                        set maxRelated to 5  -- Limit to prevent explosion
+                        set relatedCount to 0
+                        repeat with relatedDoc in relatedDocs
+                            if relatedCount >= maxRelated then exit repeat
+                            set relatedCount to relatedCount + 1
+                            set relatedUUID to uuid of relatedDoc
+                            set edgeInfo to {fromUUID:recordUUID, toUUID:relatedUUID, linkType:"ai_related", linkWeight:0.8}
+                            set end of allEdges to edgeInfo
+                            
+                            -- Add to queue for later processing
+                            if not (visitedNodes contains relatedUUID) then
+                                set end of traversalQueue to {relatedDoc, currentDepth + 1}
+                            end if
+                        end repeat
+                    end try
                     
-                    my traverseGraph(replicantDoc, currentDepth + 1, maxDepth, visitedNodes, allNodes, allEdges)
+                    -- Get incoming references
+                    try
+                        set incomingDocs to incoming references of currentRecord
+                        set maxIncoming to 3
+                        set incomingCount to 0
+                        repeat with incomingDoc in incomingDocs
+                            if incomingCount >= maxIncoming then exit repeat
+                            set incomingCount to incomingCount + 1
+                            set incomingUUID to uuid of incomingDoc
+                            set edgeInfo to {fromUUID:incomingUUID, toUUID:recordUUID, linkType:"reference", linkWeight:1.0}
+                            set end of allEdges to edgeInfo
+                            
+                            -- Add to queue for later processing
+                            if not (visitedNodes contains incomingUUID) then
+                                set end of traversalQueue to {incomingDoc, currentDepth + 1}
+                            end if
+                        end repeat
+                    end try
+                    
+                    -- Get outgoing references
+                    try
+                        set outgoingDocs to outgoing references of currentRecord
+                        set maxOutgoing to 3
+                        set outgoingCount to 0
+                        repeat with outgoingDoc in outgoingDocs
+                            if outgoingCount >= maxOutgoing then exit repeat
+                            set outgoingCount to outgoingCount + 1
+                            set outgoingUUID to uuid of outgoingDoc
+                            set edgeInfo to {fromUUID:recordUUID, toUUID:outgoingUUID, linkType:"reference", linkWeight:1.0}
+                            set end of allEdges to edgeInfo
+                            
+                            -- Add to queue for later processing
+                            if not (visitedNodes contains outgoingUUID) then
+                                set end of traversalQueue to {outgoingDoc, currentDepth + 1}
+                            end if
+                        end repeat
+                    end try
+                    
+                    -- Get replicants (documents that are copies in other locations)
+                    try
+                        set replicantDocs to replicants of currentRecord
+                        set maxReplicants to 2
+                        set replicantCount to 0
+                        repeat with replicantDoc in replicantDocs
+                            if replicantCount >= maxReplicants then exit repeat
+                            set replicantCount to replicantCount + 1
+                            set replicantUUID to uuid of replicantDoc
+                            if replicantUUID is not equal to recordUUID then
+                                set edgeInfo to {fromUUID:recordUUID, toUUID:replicantUUID, linkType:"replicant", linkWeight:0.9}
+                                set end of allEdges to edgeInfo
+                                
+                                -- Add to queue for later processing
+                                if not (visitedNodes contains replicantUUID) then
+                                    set end of traversalQueue to {replicantDoc, currentDepth + 1}
+                                end if
+                            end if
+                        end repeat
+                    end try
                 end if
-            end repeat
-        end try
+            end if
+        end repeat
     end tell
-end traverseGraph
+end buildGraphIteratively
 
 on nodesToJSON(nodeList)
     set jsonNodes to "["

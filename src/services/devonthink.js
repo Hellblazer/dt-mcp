@@ -161,4 +161,33 @@ export class DEVONthinkService {
   async analyzeDocumentSimilarity(uuids) {
     return await this.runAppleScript('analyze_document_similarity', uuids);
   }
+
+  async synthesizeDocuments(documentUUIDs, synthesisType = 'summary') {
+    const args = ['synthesize', synthesisType, ...documentUUIDs];
+    return await this.runAppleScript('knowledge_synthesis', args);
+  }
+
+  async extractThemes(documentUUIDs) {
+    const args = ['extract_themes', ...documentUUIDs];
+    return await this.runAppleScript('knowledge_synthesis', args);
+  }
+
+  async createMultiLevelSummary(documentUUIDs, summaryLevel = 'brief') {
+    const args = ['create_summary', summaryLevel, ...documentUUIDs];
+    return await this.runAppleScript('knowledge_synthesis', args);
+  }
+
+  async trackTopicEvolution(topic, timeRange = 'month') {
+    return await this.runAppleScript('track_knowledge_evolution', ['evolution', topic, timeRange]);
+  }
+
+  async createKnowledgeTimeline(documentUUIDs) {
+    const args = ['timeline', ...documentUUIDs];
+    return await this.runAppleScript('track_knowledge_evolution', args);
+  }
+
+  async identifyTrends(databaseName = '') {
+    const args = ['trends', databaseName];
+    return await this.runAppleScript('track_knowledge_evolution', args);
+  }
 }
