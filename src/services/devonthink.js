@@ -144,4 +144,8 @@ export class DEVONthinkService {
     const args = searchQuery ? [searchQuery, maxDocuments.toString(), minClusterSize.toString()] : ['', maxDocuments.toString(), minClusterSize.toString()];
     return await this.runAppleScript('detect_knowledge_clusters', args);
   }
+
+  async automateResearch(workflowType, queryOrUUID) {
+    return await this.runAppleScript('automate_research', [workflowType, queryOrUUID]);
+  }
 }

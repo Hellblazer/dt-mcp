@@ -434,6 +434,29 @@ async function main() {
         }
       }
     );
+
+    // Phase 2: Research Automation
+    server.tool(
+      'automate_research',
+      'Run automated research workflows to explore topics and organize findings',
+      {
+        workflowType: z.enum(['explore_topic', 'expand_research', 'organize_findings']).describe('Type of research workflow to run'),
+        queryOrUUID: z.string().describe('Search query for explore/organize, or document UUID for expand')
+      },
+      async ({ workflowType, queryOrUUID }) => {
+        logger.info(`Running research workflow: ${workflowType} with ${queryOrUUID}`);
+        try {
+          const result = await devonthink.automateResearch(workflowType, queryOrUUID);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
     
     // Use STDIO transport
     const transport = new StdioServerTransport();

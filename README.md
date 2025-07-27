@@ -29,6 +29,15 @@ This MCP server provides comprehensive integration between Claude Desktop and DE
 - **Research Collections** - Create and manage document collections for projects
 - **Batch Operations** - Process multiple documents or searches simultaneously
 
+### 🧠 Advanced Knowledge Features
+- **Knowledge Graph** - Build visual relationship maps with configurable depth
+- **Shortest Path** - Find connection paths between any two documents
+- **Knowledge Clusters** - Detect groups of related documents automatically
+- **Research Automation** - Streamline research workflows:
+  - Explore topics with automatic collection creation
+  - Expand research from a single document
+  - Organize findings by relevance scores
+
 ## Prerequisites
 
 - macOS (required for AppleScript integration)
@@ -223,6 +232,19 @@ Identify clusters of related documents based on shared tags and connections.
   - `clusterCount`: Number of clusters found
   - Uses connected components algorithm for clustering
 
+#### `automate_research`
+Run automated research workflows to explore topics and organize findings.
+- **Parameters:**
+  - `workflowType` (required): Type of workflow to run:
+    - `"explore_topic"`: Search topic, analyze results, create organized collection
+    - `"expand_research"`: From one document, find and collect related documents
+    - `"organize_findings"`: Sort search results by relevance scores
+  - `queryOrUUID` (required): Search query for explore/organize, or document UUID for expand
+- **Returns:** Workflow-specific results:
+  - **explore_topic**: Collection UUID, documents added, top tags summary
+  - **expand_research**: Collection UUID, AI-related and reference counts
+  - **organize_findings**: Collection UUID with High/Medium/Low relevance groups
+
 #### `compare_documents`
 Compare two documents.
 - **Parameters:**
@@ -288,7 +310,8 @@ dt-mcp/
         ├── add_to_collection.applescript
         ├── build_knowledge_graph.applescript
         ├── find_shortest_path.applescript
-        └── detect_knowledge_clusters.applescript
+        ├── detect_knowledge_clusters.applescript
+        └── automate_research.applescript
 ```
 
 ## Troubleshooting
