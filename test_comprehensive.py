@@ -125,7 +125,7 @@ class DEVONthinkMCPTester:
         # Test research workflows
         self.test_tool(
             'automate_research',
-            {'workflowType': 'explore_topic', 'queryOrUUID': 'artificial intelligence'},
+            {'topic': 'artificial intelligence'},
             "Explore topic research workflow"
         )
         

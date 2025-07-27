@@ -145,8 +145,16 @@ export class DEVONthinkService {
     return await this.runAppleScript('detect_knowledge_clusters', args);
   }
 
-  async automateResearch(workflowType, queryOrUUID) {
-    return await this.runAppleScript('automate_research', [workflowType, queryOrUUID]);
+  async automateResearch(topic, database = null, maxResults = 50) {
+    // For the MCP server, we use 'explore_topic' workflow with the topic as query
+    const args = ['explore_topic', topic];
+    if (database) {
+      args.push(database);
+    }
+    if (maxResults) {
+      args.push(maxResults.toString());
+    }
+    return await this.runAppleScript('automate_research', args);
   }
 
   async automateResearchOptimized(queryOrUUID, maxResults = 50) {
