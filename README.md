@@ -1,6 +1,6 @@
 # DEVONthink MCP Server
 
-A Model Context Protocol (MCP) server that integrates Claude Desktop with DEVONthink on macOS, enabling document management, research automation, and knowledge synthesis through specialized tools.
+A Model Context Protocol (MCP) server that integrates Claude Desktop / Claude Code with DEVONthink on macOS, enabling document management, research automation, and knowledge synthesis through specialized tools.
 
 [![Node.js CI](https://github.com/yourusername/dt-mcp/actions/workflows/test-mcp-server.yml/badge.svg)](https://github.com/yourusername/dt-mcp/actions/workflows/test-mcp-server.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,7 +9,7 @@ A Model Context Protocol (MCP) server that integrates Claude Desktop with DEVONt
 
 ## Overview
 
-This MCP server bridges Claude Desktop and DEVONthink, providing document operations and knowledge management capabilities.
+This MCP server bridges Claude Desktop / Claude Code and DEVONthink, providing document operations and knowledge management capabilities.
 
 ### Key Features
 
