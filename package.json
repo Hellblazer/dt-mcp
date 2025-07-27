@@ -1,0 +1,41 @@
+{
+  "name": "devonthink-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for DEVONthink integration",
+  "main": "server.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "devonthink-mcp": "./server.js"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "npm run test:scripts",
+    "test:scripts": "osascript scripts/test/test_devonthink.applescript",
+    "test:mcp": "npx @modelcontextprotocol/inspector server.js",
+    "dev": "LOG_LEVEL=DEBUG node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.1",
+    "zod": "^3.24.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hal.hildebrand/dt-mcp.git"
+  },
+  "keywords": [
+    "devonthink",
+    "applescript",
+    "mcp-server",
+    "mcp",
+    "document-management"
+  ],
+  "author": "hal.hildebrand",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hal.hildebrand/dt-mcp/issues"
+  },
+  "homepage": "https://github.com/hal.hildebrand/dt-mcp#readme"
+}
