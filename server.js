@@ -457,6 +457,72 @@ async function main() {
         }
       }
     );
+
+    // Optimized organize findings workflow
+    server.tool(
+      'organize_findings_optimized',
+      'Organize search results by relevance with performance optimization',
+      {
+        searchQuery: z.string().describe('Search query to organize results for'),
+        maxResults: z.number().optional().describe('Maximum results to process (default: 50)')
+      },
+      async ({ searchQuery, maxResults = 50 }) => {
+        logger.info(`Organizing findings (optimized) for: ${searchQuery} with max ${maxResults} results`);
+        try {
+          const result = await devonthink.automateResearchOptimized(searchQuery, maxResults);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    // Phase 3: Document Intelligence
+    server.tool(
+      'analyze_document',
+      'Analyze document complexity, readability, and extract key information',
+      {
+        uuid: z.string().describe('Document UUID')
+      },
+      async ({ uuid }) => {
+        logger.info(`Analyzing document: ${uuid}`);
+        try {
+          const analysis = await devonthink.analyzeDocument(uuid);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'analyze_document_similarity',
+      'Compare multiple documents for similarity based on content and metadata',
+      {
+        uuids: z.array(z.string()).min(2).describe('Array of document UUIDs to compare (minimum 2)')
+      },
+      async ({ uuids }) => {
+        logger.info(`Analyzing similarity between ${uuids.length} documents`);
+        try {
+          const analysis = await devonthink.analyzeDocumentSimilarity(uuids);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
     
     // Use STDIO transport
     const transport = new StdioServerTransport();

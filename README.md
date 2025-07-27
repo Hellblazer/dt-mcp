@@ -245,6 +245,34 @@ Run automated research workflows to explore topics and organize findings.
   - **expand_research**: Collection UUID, AI-related and reference counts
   - **organize_findings**: Collection UUID with High/Medium/Low relevance groups
 
+#### `organize_findings_optimized`
+Performance-optimized version of organize_findings workflow.
+- **Parameters:**
+  - `searchQuery` (required): Search query to organize results for
+  - `maxResults` (optional): Maximum results to process (default: 50)
+- **Returns:** Organization results with performance metrics
+- **Note:** Addresses timeout issues with large result sets
+
+#### `analyze_document`
+Analyze document complexity, readability, and extract key information.
+- **Parameters:**
+  - `uuid` (required): Document UUID
+- **Returns:** Document analysis including:
+  - **metrics**: Word count, character count, readability score, readability level
+  - **metadata**: URL presence, comment presence, tag count
+  - **keySentences**: Extracted key sentences from the document
+  - Uses Flesch Reading Ease scoring (0-100, higher = easier)
+
+#### `analyze_document_similarity`
+Compare multiple documents for similarity based on content and metadata.
+- **Parameters:**
+  - `uuids` (required): Array of document UUIDs (minimum 2)
+- **Returns:** Similarity analysis including:
+  - **documents**: Basic info for each document
+  - **comparisons**: Pairwise similarity scores (0-1)
+  - **mostSimilar**: The most similar pair of documents
+  - Uses Jaccard Index for word overlap and tag similarity
+
 #### `compare_documents`
 Compare two documents.
 - **Parameters:**
@@ -311,7 +339,11 @@ dt-mcp/
         ├── build_knowledge_graph.applescript
         ├── find_shortest_path.applescript
         ├── detect_knowledge_clusters.applescript
-        └── automate_research.applescript
+        ├── automate_research.applescript
+        ├── automate_research_optimized.applescript
+        ├── document_analysis.applescript
+        ├── document_analysis_optimized.applescript
+        └── analyze_document_similarity.applescript
 ```
 
 ## Troubleshooting

@@ -148,4 +148,17 @@ export class DEVONthinkService {
   async automateResearch(workflowType, queryOrUUID) {
     return await this.runAppleScript('automate_research', [workflowType, queryOrUUID]);
   }
+
+  async automateResearchOptimized(queryOrUUID, maxResults = 50) {
+    return await this.runAppleScript('automate_research_optimized', ['organize_findings_optimized', queryOrUUID, maxResults.toString()]);
+  }
+
+  async analyzeDocument(uuid, optimized = false) {
+    const scriptName = optimized ? 'document_analysis_optimized' : 'document_analysis';
+    return await this.runAppleScript(scriptName, [uuid]);
+  }
+
+  async analyzeDocumentSimilarity(uuids) {
+    return await this.runAppleScript('analyze_document_similarity', uuids);
+  }
 }
