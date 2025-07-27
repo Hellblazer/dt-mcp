@@ -365,6 +365,75 @@ async function main() {
         }
       }
     );
+
+    // Knowledge Graph Features
+    server.tool(
+      'build_knowledge_graph',
+      'Build a knowledge graph showing document relationships with depth control',
+      {
+        uuid: z.string().describe('Starting document UUID'),
+        maxDepth: z.number().optional().describe('Maximum traversal depth (default: 3)')
+      },
+      async ({ uuid, maxDepth = 3 }) => {
+        logger.info(`Building knowledge graph from document: ${uuid} with depth: ${maxDepth}`);
+        try {
+          const graph = await devonthink.buildKnowledgeGraph(uuid, maxDepth);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(graph, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'find_shortest_path',
+      'Find the shortest connection path between two documents',
+      {
+        startUUID: z.string().describe('Starting document UUID'),
+        targetUUID: z.string().describe('Target document UUID'),
+        maxDepth: z.number().optional().describe('Maximum search depth (default: 5)')
+      },
+      async ({ startUUID, targetUUID, maxDepth = 5 }) => {
+        logger.info(`Finding shortest path from ${startUUID} to ${targetUUID}`);
+        try {
+          const path = await devonthink.findShortestPath(startUUID, targetUUID, maxDepth);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(path, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
+
+    server.tool(
+      'detect_knowledge_clusters',
+      'Detect clusters of related documents based on tags and connections',
+      {
+        searchQuery: z.string().optional().describe('Search query to find documents (empty = use current selection)'),
+        maxDocuments: z.number().optional().describe('Maximum documents to analyze (default: 50)'),
+        minClusterSize: z.number().optional().describe('Minimum cluster size (default: 3)')
+      },
+      async ({ searchQuery = '', maxDocuments = 50, minClusterSize = 3 }) => {
+        logger.info(`Detecting knowledge clusters for: ${searchQuery || 'current selection'}`);
+        try {
+          const clusters = await devonthink.detectKnowledgeClusters(searchQuery, maxDocuments, minClusterSize);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(clusters, null, 2) }]
+          };
+        } catch (error) {
+          return {
+            content: [{ type: 'text', text: `Error: ${error.message}` }]
+          };
+        }
+      }
+    );
     
     // Use STDIO transport
     const transport = new StdioServerTransport();

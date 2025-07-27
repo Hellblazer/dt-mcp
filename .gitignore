@@ -13,6 +13,11 @@ logs/
 .AppleDouble
 .LSOverride
 
+# AppleScript compiled files
+*.scpt
+*.scptd/
+*.app
+
 # IDE
 .idea/
 .vscode/
@@ -26,3 +31,18 @@ logs/
 # Test files
 test-output/
 coverage/
+*.test.js
+test_*.applescript
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Python (if we add Python support later)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.env

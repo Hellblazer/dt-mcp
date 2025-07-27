@@ -188,6 +188,41 @@ Discover document relationships.
   - `maxResults` (optional): Maximum connections (default: 10)
 - **Returns:** Connections categorized by type (AI, references)
 
+#### `build_knowledge_graph`
+Build a knowledge graph showing document relationships with depth control.
+- **Parameters:**
+  - `uuid` (required): Starting document UUID
+  - `maxDepth` (optional): Maximum traversal depth (default: 3)
+- **Returns:** Graph structure with nodes and edges showing:
+  - AI-based relationships (similarity scores)
+  - Reference links (incoming/outgoing)
+  - Replicant connections
+  - Depth information for each node
+
+#### `find_shortest_path`
+Find the shortest connection path between two documents.
+- **Parameters:**
+  - `startUUID` (required): Starting document UUID
+  - `targetUUID` (required): Target document UUID
+  - `maxDepth` (optional): Maximum search depth (default: 5)
+- **Returns:** Path information including:
+  - `found`: Whether a path exists
+  - `length`: Number of hops in the path
+  - `path`: Array of documents in the path with names and types
+  - Uses breadth-first search for optimal path finding
+
+#### `detect_knowledge_clusters`
+Identify clusters of related documents based on shared tags and connections.
+- **Parameters:**
+  - `searchQuery` (optional): Search query to find documents (empty = use current selection)
+  - `maxDocuments` (optional): Maximum documents to analyze (default: 50)
+  - `minClusterSize` (optional): Minimum cluster size (default: 3)
+- **Returns:** Cluster analysis including:
+  - `clusters`: Groups of connected documents with common tags
+  - `topTags`: Most frequently occurring tags across documents
+  - `clusterCount`: Number of clusters found
+  - Uses connected components algorithm for clustering
+
 #### `compare_documents`
 Compare two documents.
 - **Parameters:**
@@ -250,7 +285,10 @@ dt-mcp/
         ├── find_connections.applescript
         ├── compare_documents.applescript
         ├── create_collection.applescript
-        └── add_to_collection.applescript
+        ├── add_to_collection.applescript
+        ├── build_knowledge_graph.applescript
+        ├── find_shortest_path.applescript
+        └── detect_knowledge_clusters.applescript
 ```
 
 ## Troubleshooting

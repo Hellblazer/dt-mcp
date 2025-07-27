@@ -131,4 +131,17 @@ export class DEVONthinkService {
   async addToCollection(collectionUUID, documentUUID, notes = '') {
     return await this.runAppleScript('add_to_collection', [collectionUUID, documentUUID, notes]);
   }
+
+  async buildKnowledgeGraph(uuid, maxDepth = 3) {
+    return await this.runAppleScript('build_knowledge_graph', [uuid, maxDepth.toString()]);
+  }
+
+  async findShortestPath(startUUID, targetUUID, maxDepth = 5) {
+    return await this.runAppleScript('find_shortest_path', [startUUID, targetUUID, maxDepth.toString()]);
+  }
+
+  async detectKnowledgeClusters(searchQuery = '', maxDocuments = 50, minClusterSize = 3) {
+    const args = searchQuery ? [searchQuery, maxDocuments.toString(), minClusterSize.toString()] : ['', maxDocuments.toString(), minClusterSize.toString()];
+    return await this.runAppleScript('detect_knowledge_clusters', args);
+  }
 }
