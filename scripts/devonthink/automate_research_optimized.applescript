@@ -19,7 +19,7 @@ on run argv
     
     tell application id "DNtp"
         try
-            if workflowType is "organize_findings_optimized" then
+            if workflowType is "organize_findings" then
                 return my organizeFindings_Optimized(queryOrUUID, maxResults)
             else
                 return "{\"error\":\"Unknown workflow type: " & workflowType & "\"}"
@@ -126,7 +126,7 @@ on organizeFindings_Optimized(searchQuery, maxResults)
         
         -- Return results
         set jsonOutput to "{"
-        set jsonOutput to jsonOutput & "\"workflow\":\"organize_findings_optimized\","
+        set jsonOutput to jsonOutput & "\"workflow\":\"organize_findings\","
         set jsonOutput to jsonOutput & "\"query\":\"" & searchQuery & "\","
         set jsonOutput to jsonOutput & "\"collectionUUID\":\"" & (uuid of organizedGroup) & "\","
         set jsonOutput to jsonOutput & "\"totalFound\":" & totalFound & ","

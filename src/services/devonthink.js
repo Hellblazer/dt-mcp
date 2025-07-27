@@ -59,9 +59,26 @@ export class DEVONthinkService {
     }
   }
 
-  async search(query, database) {
+  async search(query, database, limit = 50, offset = 0) {
     const args = database ? [query, database] : [query];
-    return await this.runAppleScript('search', args);
+    const allResults = await this.runAppleScript('search', args);
+    
+    // Apply pagination
+    const totalCount = allResults.length;
+    const paginatedResults = allResults.slice(offset, offset + limit);
+    
+    return {
+      query,
+      database: database || 'all',
+      results: paginatedResults,
+      pagination: {
+        offset,
+        limit,
+        totalCount,
+        hasMore: offset + limit < totalCount,
+        nextOffset: offset + limit < totalCount ? offset + limit : null
+      }
+    };
   }
 
   async readDocument(uuid, includeContent = true) {
@@ -103,9 +120,13 @@ export class DEVONthinkService {
     return await this.runAppleScript('ocr_document', [uuid]);
   }
 
-  async batchSearch(queries, database) {
-    // Run multiple searches in parallel
-    const searchPromises = queries.map(query => this.search(query, database));
+  async batchSearch(queries, database, maxResultsPerQuery = 20) {
+    // Run multiple searches in parallel with result limiting
+    const searchPromises = queries.map(async query => {
+      const result = await this.search(query, database, maxResultsPerQuery, 0);
+      // Return just the results array for batch search (not pagination info)
+      return result.results || result;
+    });
     const results = await Promise.all(searchPromises);
     return results.reduce((acc, curr, index) => {
       acc[queries[index]] = curr;
@@ -159,7 +180,7 @@ export class DEVONthinkService {
   }
 
   async automateResearchOptimized(queryOrUUID, maxResults = 50) {
-    return await this.runAppleScript('automate_research_optimized', ['organize_findings_optimized', queryOrUUID, maxResults.toString()]);
+    return await this.runAppleScript('automate_research_optimized', ['organize_findings', queryOrUUID, maxResults.toString()]);
   }
 
   async analyzeDocument(uuid, optimized = false) {
@@ -205,8 +226,9 @@ export class DEVONthinkService {
     if (!Array.isArray(documentUUIDs)) {
       throw new Error(`documentUUIDs must be an array, got ${typeof documentUUIDs}: ${JSON.stringify(documentUUIDs)}`);
     }
-    const args = ['create_summary', summaryLevel, ...documentUUIDs];
-    return await this.runAppleScript('knowledge_synthesis', args);
+    // Use native AI-enhanced version
+    const args = [summaryLevel, ...documentUUIDs];
+    return await this.runAppleScript('create_multi_level_summary_native', args);
   }
 
   async trackTopicEvolution(topic, timeRange = 'month') {
@@ -229,9 +251,26 @@ export class DEVONthinkService {
     return await this.runAppleScript('advanced_search', args);
   }
 
-  async listSmartGroups(database = '') {
+  async listSmartGroups(database = '', limit = 100, offset = 0) {
     // List all smart groups, optionally filtered by database
     const args = database ? [database] : [];
-    return await this.runAppleScript('list_smart_groups', args);
+    const allResults = await this.runAppleScript('list_smart_groups', args);
+    
+    // Extract smart groups array from the response
+    const smartGroups = allResults.smart_groups || allResults;
+    const totalCount = smartGroups.length;
+    const paginatedGroups = smartGroups.slice(offset, offset + limit);
+    
+    return {
+      database_filter: database,
+      smart_groups: paginatedGroups,
+      pagination: {
+        offset,
+        limit,
+        totalCount,
+        hasMore: offset + limit < totalCount,
+        nextOffset: offset + limit < totalCount ? offset + limit : null
+      }
+    };
   }
 }

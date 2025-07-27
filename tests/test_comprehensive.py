@@ -22,7 +22,7 @@ class DEVONthinkMCPTester:
         try:
             cmd = [
                 'node',
-                'test_mcp_tool.js',
+                'tests/test_mcp_tool.js',
                 tool_name,
                 json.dumps(params)
             ]
@@ -131,7 +131,7 @@ class DEVONthinkMCPTester:
         
         # Test optimized organize findings
         self.test_tool(
-            'organize_findings_optimized',
+            'organize_findings',
             {'searchQuery': 'machine learning', 'maxResults': 10},
             "Optimized organize findings workflow"
         )

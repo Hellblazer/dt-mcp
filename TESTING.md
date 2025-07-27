@@ -211,7 +211,7 @@ npm run test:tool automate_research '{"workflowType": "explore_topic", "queryOrU
 npm run test:tool automate_research '{"workflowType": "expand_research", "queryOrUUID": "YOUR-UUID"}'
 
 # Test optimized organization
-npm run test:tool organize_findings_optimized '{"searchQuery": "machine learning", "maxResults": 10}'
+npm run test:tool organize_findings '{"searchQuery": "machine learning", "maxResults": 10}'
 ```
 
 ### Document Intelligence Testing
@@ -263,7 +263,7 @@ import('./server.js').then(async () => {
 **Test timeouts**:
 ```bash
 # Increase timeout for comprehensive tests
-timeout 300s python3 test_comprehensive.py
+timeout 300s python3 tests/test_comprehensive.py
 ```
 
 **Permission errors**:
@@ -387,7 +387,7 @@ echo "Server startup test completed"
 
 ### Adding Tool Tests
 
-When adding new tools, update `test_comprehensive.py`:
+When adding new tools, update `tests/test_comprehensive.py`:
 
 ```python
 def test_new_feature(self):

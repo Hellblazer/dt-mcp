@@ -516,7 +516,7 @@ export const toolDescriptions = {
     }
   },
 
-  organize_findings_optimized: {
+  organize_findings: {
     brief: 'Organize search results by relevance',
     detailed: `Sort and organize search results using relevance scoring.
     

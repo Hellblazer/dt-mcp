@@ -21,10 +21,10 @@
     "dev": "LOG_LEVEL=DEBUG node server.js",
     "test": "npm run test:scripts && npm run test:comprehensive",
     "test:scripts": "osascript scripts/test/test_devonthink.applescript",
-    "test:comprehensive": "python3 test_comprehensive.py",
-    "test:search": "python3 test_search_functionality.py",
+    "test:comprehensive": "python3 tests/test_comprehensive.py",
+    "test:search": "python3 tests/test_search_functionality.py",
     "test:mcp": "npx @modelcontextprotocol/inspector server.js",
-    "test:tool": "node test_mcp_tool.js",
+    "test:tool": "node tests/test_mcp_tool.js",
     "lint": "npx eslint server.js src/ --ext .js || echo 'ESLint not configured'",
     "validate": "npm run lint && npm run test:scripts",
     "docs": "echo 'Documentation available in README.md'"
@@ -73,7 +73,7 @@
     "server.js",
     "src/",
     "scripts/",
-    "test_mcp_tool.js",
+    "tests/test_mcp_tool.js",
     "README.md",
     "LICENSE",
     "CLAUDE.md"

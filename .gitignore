@@ -31,8 +31,9 @@ logs/
 # Test files
 test-output/
 coverage/
-*.test.js
-test_*.applescript
+test_*.py
+test_*.js
+test_results_*.json
 # But keep test_comprehensive.py and test_mcp_tool.js
 !test_comprehensive.py
 !test_mcp_tool.js
@@ -41,12 +42,22 @@ test_*.applescript
 *.tmp
 *.temp
 .cache/
+.temp/
+.tmp/
 
-# Python (if we add Python support later)
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 .Python
 venv/
 .env
+
+# Test artifacts
 /test_results_comprehensive.json
+analyze_*.py
+check_*.applescript
+
+# Archives and fixes
+fix_it/
+docs/archive/

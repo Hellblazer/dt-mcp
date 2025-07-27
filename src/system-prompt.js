@@ -76,7 +76,7 @@ export const contextPrompts = {
 1. Use list_smart_groups to explore existing organizational structures
 2. Create smart groups with create_smart_group (dynamic collections)
 3. Build collections with create_collection for research projects
-4. Use organize_findings_optimized for large result sets
+4. Use organize_findings for large result sets
 5. Tag documents with update_tags for better categorization
 6. Use create_knowledge_timeline for chronological organization
 7. Apply advanced_search with field queries for precise filtering`

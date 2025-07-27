@@ -65,9 +65,8 @@ on run argv
             
             set jsonOutput to "["
             repeat with i from 1 to count of searchResults
-                if i > 50 then exit repeat -- Limit results
                 set jsonOutput to jsonOutput & my recordToJSON(item i of searchResults)
-                if i < count of searchResults and i < 50 then 
+                if i < count of searchResults then 
                     set jsonOutput to jsonOutput & ","
                 end if
             end repeat

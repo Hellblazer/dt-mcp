@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Comprehensive test harness for all MCP tools
-import { DEVONthinkService } from './src/services/devonthink.js';
+import { DEVONthinkService } from '../src/services/devonthink.js';
 
 async function main() {
   if (process.argv.length < 4) {
@@ -81,7 +81,7 @@ async function main() {
         result = await devonthink.automateResearch(params.workflowType, params.queryOrUUID);
         break;
         
-      case 'organize_findings_optimized':
+      case 'organize_findings':
         result = await devonthink.automateResearchOptimized(params.searchQuery, params.maxResults);
         break;
         

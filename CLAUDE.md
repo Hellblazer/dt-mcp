@@ -118,7 +118,7 @@ compare_documents         # Document similarity analysis
 ### Research Automation (3 tools)
 ```bash
 automate_research         # Complete research workflows
-organize_findings_optimized # Performance-optimized result organization
+organize_findings           # Performance-optimized result organization
 create_collection         # Research project collections
 ```
 

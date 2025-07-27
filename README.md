@@ -63,20 +63,20 @@ npm run test:scripts
 
 ### Core Operations (8 tools)
 ```bash
-search_devonthink           # Document search with DEVONthink syntax
+search_devonthink          # Document search with DEVONthink syntax
 read_document              # Document content and metadata
 create_document            # New document creation
 list_databases             # Database enumeration
 update_tags                # Tag management
 get_related_documents      # AI-suggested relations
 create_smart_group         # Dynamic collections
-ocr_document              # Text extraction from PDFs/images
+ocr_document               # Text extraction from PDFs/images
 ```
 
 ### Advanced Search & Organization (2 tools)
 ```bash
 advanced_search            # Full search syntax with operators (AND, OR, NOT, field:value)
-list_smart_groups         # Access to DEVONthink's organizational features
+list_smart_groups          # Access to DEVONthink's organizational features
 ```
 
 ### Knowledge Graph & Relationships (5 tools)
@@ -84,51 +84,51 @@ list_smart_groups         # Access to DEVONthink's organizational features
 build_knowledge_graph      # Visual relationship mapping with depth control
 find_shortest_path         # BFS pathfinding between documents
 detect_knowledge_clusters  # AI-powered document clustering
-find_connections          # Multi-type relationship discovery
-compare_documents         # Document similarity analysis
+find_connections           # Multi-type relationship discovery
+compare_documents          # Document similarity analysis
 ```
 
 ### Research Automation (3 tools)
 ```bash
-automate_research         # Complete research workflows
-organize_findings_optimized # Performance-optimized result organization
-create_collection         # Research project collections
+automate_research          # Complete research workflows
+organize_findings          # Performance-optimized result organization
+create_collection          # Research project collections
 ```
 
 ### Document Intelligence (3 tools)
 ```bash
-analyze_document          # Complexity & readability analysis
+analyze_document           # Complexity & readability analysis
 analyze_document_similarity # Multi-document comparison
-batch_read_documents      # Parallel document processing
+batch_read_documents       # Parallel document processing
 ```
 
 ### Knowledge Synthesis (6 tools)
 ```bash
-synthesize_documents      # Multi-document synthesis (summary/consensus/insights)
-extract_themes           # AI theme identification
-classify_document        # Native DEVONthink AI classification
-get_similar_documents    # AI-powered similarity finding
+synthesize_documents       # Multi-document synthesis (summary/consensus/insights)
+extract_themes             # AI theme identification
+classify_document          # Native DEVONthink AI classification
+get_similar_documents      # AI-powered similarity finding
 create_multi_level_summary # Tiered summarization (brief/detailed/full)
-track_topic_evolution    # Topic change analysis over time
-create_knowledge_timeline # Chronological knowledge mapping
-identify_trends          # Trending topic detection
+track_topic_evolution      # Topic change analysis over time
+create_knowledge_timeline  # Chronological knowledge mapping
+identify_trends            # Trending topic detection
 ```
 
 ### Batch Operations (2 tools)
 ```bash
-batch_search             # Multiple searches in parallel
-batch_read_documents     # Multiple document reads
+batch_search               # Multiple searches in parallel
+batch_read_documents       # Multiple document reads
 ```
 
 ### Collections (2 tools)
 ```bash
-create_collection        # Document collections/research threads
-add_to_collection        # Add documents to collections
+create_collection          # Document collections/research threads
+add_to_collection          # Add documents to collections
 ```
 
 ### Meta Tool (1 tool)
 ```bash
-get_tool_help            # AI-friendly help system with examples
+get_tool_help              # AI-friendly help system with examples
 ```
 
 ## Usage Examples
@@ -214,7 +214,7 @@ npm run test:scripts
 npm run test:comprehensive
 
 # Individual tool testing
-npm run test:tool synthesize_documents
+npm run test:tool synthesize_documents '{"documentUUIDs": ["UUID1", "UUID2"], "synthesisType": "summary"}'
 
 # Interactive exploration
 npm run test:mcp

@@ -248,3 +248,4 @@ jobs:
           test-report.md
           test_*.js
           test_*.py
+          tests/test_*.py

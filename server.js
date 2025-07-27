@@ -62,12 +62,14 @@ async function main() {
       'Search for documents in DEVONthink databases',
       {
         query: z.string().describe('Search query (supports DEVONthink search syntax)'),
-        database: z.string().optional().describe('Specific database name to search in (optional)')
+        database: z.string().optional().describe('Specific database name to search in (optional)'),
+        limit: z.number().optional().default(50).describe('Maximum number of results to return (default: 50)'),
+        offset: z.number().optional().default(0).describe('Number of results to skip (default: 0)')
       },
-      async ({ query, database }) => {
+      async ({ query, database, limit = 50, offset = 0 }) => {
         logger.info(`Searching DEVONthink for: ${query}`);
         try {
-          const results = await devonthink.search(query, database);
+          const results = await devonthink.search(query, database, limit, offset);
           return {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
@@ -238,12 +240,13 @@ async function main() {
       'Search for multiple queries in DEVONthink simultaneously',
       {
         queries: z.array(z.string()).describe('Array of search queries'),
-        database: z.string().optional().describe('Specific database name to search in (optional)')
+        database: z.string().optional().describe('Specific database name to search in (optional)'),
+        maxResultsPerQuery: z.number().optional().default(20).describe('Maximum results per query to prevent overwhelming responses (default: 20)')
       },
-      async ({ queries, database }) => {
+      async ({ queries, database, maxResultsPerQuery = 20 }) => {
         logger.info(`Batch searching for ${queries.length} queries`);
         try {
-          const results = await devonthink.batchSearch(queries, database);
+          const results = await devonthink.batchSearch(queries, database, maxResultsPerQuery);
           return {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
@@ -460,16 +463,16 @@ async function main() {
       }
     );
 
-    // Optimized organize findings workflow
+    // Organize findings workflow
     server.tool(
-      'organize_findings_optimized',
+      'organize_findings',
       'Organize search results by relevance with performance optimization',
       {
         searchQuery: z.string().describe('Search query to organize results for'),
         maxResults: z.number().optional().describe('Maximum results to process (default: 50)')
       },
       async ({ searchQuery, maxResults = 50 }) => {
-        logger.info(`Organizing findings (optimized) for: ${searchQuery} with max ${maxResults} results`);
+        logger.info(`Organizing findings for: ${searchQuery} with max ${maxResults} results`);
         try {
           const result = await devonthink.automateResearchOptimized(searchQuery, maxResults);
           return {
@@ -729,12 +732,14 @@ async function main() {
       'list_smart_groups',
       'List all smart groups in DEVONthink databases. Smart groups are dynamic collections that automatically organize documents based on search criteria. This tool provides direct access to DEVONthink\'s organizational features.',
       {
-        database: z.string().optional().describe('Specific database name to list smart groups from (optional, lists from all databases if not provided)')
+        database: z.string().optional().describe('Specific database name to list smart groups from (optional, lists from all databases if not provided)'),
+        limit: z.number().optional().default(100).describe('Maximum number of smart groups to return (default: 100)'),
+        offset: z.number().optional().default(0).describe('Number of smart groups to skip (default: 0)')
       },
-      async ({ database = '' }) => {
+      async ({ database = '', limit = 100, offset = 0 }) => {
         logger.info(`Listing smart groups in ${database || 'all databases'}`);
         try {
-          const results = await devonthink.listSmartGroups(database);
+          const results = await devonthink.listSmartGroups(database, limit, offset);
           return {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
