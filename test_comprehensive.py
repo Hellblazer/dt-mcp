@@ -241,6 +241,13 @@ class DEVONthinkMCPTester:
             "Basic document search"
         )
         
+        # Test search with database parameter
+        self.test_tool(
+            'search_devonthink',
+            {'query': 'test', 'database': 'Sims'},
+            "Search within specific database"
+        )
+        
         # Test database listing
         self.test_tool(
             'list_databases',

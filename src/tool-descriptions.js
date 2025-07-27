@@ -31,6 +31,11 @@ export const toolDescriptions = {
     - Specific database: {"query": "topic", "database": "Research"}
     - Recent docs: {"query": "modified:<=30days"}
     
+    KNOWN LIMITATIONS:
+    - Very common words ("the", "a", "and") may cause errors
+    - Use more specific terms or search operators
+    - Database names must match exactly (case-sensitive)
+    
     RETURNS: Array of documents with uuid, name, type, path, tags, dates
     ERRORS: Invalid syntax, database not found, no results`,
     

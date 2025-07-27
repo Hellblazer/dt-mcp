@@ -26,6 +26,9 @@ npm run test:scripts
 # Test comprehensive suite (all 25+ tools)
 npm run test:comprehensive
 
+# Test search functionality specifically
+npm run test:search
+
 # Test individual tool
 npm run test:tool search_devonthink '{"query": "test"}'
 
@@ -60,7 +63,28 @@ Number of databases: 3
 Search results count: 6884
 ```
 
-### 2. Individual Tool Testing
+### 2. Search Functionality Tests
+
+**Purpose**: Comprehensive testing of search capabilities
+**Duration**: ~30 seconds
+**Command**: `npm run test:search`
+
+**What it tests**:
+- Basic search across all databases
+- Database-specific search
+- Complex queries with operators
+- Error handling for invalid databases
+- Common word searches
+
+**Example Output**:
+```
+✅ Basic search across all databases
+✅ Search in Sims database
+✅ Complex search with operators
+✅ Error handling for non-existent database
+```
+
+### 3. Individual Tool Testing
 
 **Purpose**: Test specific MCP tools in isolation
 **Duration**: ~10 seconds per tool

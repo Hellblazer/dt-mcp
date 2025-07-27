@@ -57,6 +57,15 @@ Search in specific database:
 }
 ```
 
+**Note about database names**: Use the exact database name as shown by `list_databases` (e.g., "Sims", "Constantine", "Inbox")
+
+**Note about search queries**: Very common words like "the", "a", "and" may cause errors. Use more specific search terms or DEVONthink's search syntax:
+- `name:document` - Search in document names only
+- `content:specific` - Search in content only
+- `kind:PDF` - Search by document type
+- `tag:important` - Search by tag
+- `created:2023` - Search by date
+
 ### read_document
 Read metadata only:
 ```

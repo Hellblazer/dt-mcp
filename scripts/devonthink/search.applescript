@@ -40,23 +40,42 @@ on run argv
     if (count of argv) > 1 then set databaseName to item 2 of argv
     
     tell application id "DNtp"
-        if databaseName is "" then
-            set searchResults to search searchQuery
-        else
-            set targetDB to database databaseName
-            set searchResults to search searchQuery in targetDB
-        end if
-        
-        set jsonOutput to "["
-        repeat with i from 1 to count of searchResults
-            if i > 50 then exit repeat -- Limit results
-            set jsonOutput to jsonOutput & my recordToJSON(item i of searchResults)
-            if i < count of searchResults and i < 50 then 
-                set jsonOutput to jsonOutput & ","
+        try
+            if databaseName is "" then
+                set searchResults to search searchQuery
+            else
+                -- Try to get the database
+                set targetDB to missing value
+                repeat with db in databases
+                    if name of db is databaseName then
+                        set targetDB to db
+                        exit repeat
+                    end if
+                end repeat
+                
+                if targetDB is missing value then
+                    return "{\"error\":\"Database '" & databaseName & "' not found\"}"
+                end if
+                
+                -- Use tell block for database-specific search
+                tell targetDB
+                    set searchResults to search searchQuery
+                end tell
             end if
-        end repeat
-        set jsonOutput to jsonOutput & "]"
-        
-        return jsonOutput
+            
+            set jsonOutput to "["
+            repeat with i from 1 to count of searchResults
+                if i > 50 then exit repeat -- Limit results
+                set jsonOutput to jsonOutput & my recordToJSON(item i of searchResults)
+                if i < count of searchResults and i < 50 then 
+                    set jsonOutput to jsonOutput & ","
+                end if
+            end repeat
+            set jsonOutput to jsonOutput & "]"
+            
+            return jsonOutput
+        on error errMsg
+            return "{\"error\":\"" & my escapeString(errMsg) & "\"}"
+        end try
     end tell
 end run

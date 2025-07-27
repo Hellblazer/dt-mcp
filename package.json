@@ -22,6 +22,7 @@
     "test": "npm run test:scripts && npm run test:comprehensive",
     "test:scripts": "osascript scripts/test/test_devonthink.applescript",
     "test:comprehensive": "python3 test_comprehensive.py",
+    "test:search": "python3 test_search_functionality.py",
     "test:mcp": "npx @modelcontextprotocol/inspector server.js",
     "test:tool": "node test_mcp_tool.js",
     "lint": "npx eslint server.js src/ --ext .js || echo 'ESLint not configured'",
