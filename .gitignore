@@ -55,6 +55,9 @@ venv/
 
 # Test artifacts
 /test_results_comprehensive.json
+/test-report.json
+/test-report.md
+/tests/test-results.json
 analyze_*.py
 check_*.applescript
 

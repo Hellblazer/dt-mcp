@@ -97,6 +97,9 @@ on trackTopicEvolution(topic, timeRange)
             end if
         end repeat
         
+        -- Sort monthlyData chronologically
+        set sortedMonthlyData to my sortMonthlyData(monthlyData)
+        
         -- Build response
         set jsonOutput to "{"
         set jsonOutput to jsonOutput & "\"topic\":\"" & my escapeString(topic) & "\","
@@ -104,9 +107,9 @@ on trackTopicEvolution(topic, timeRange)
         set jsonOutput to jsonOutput & "\"totalDocuments\":" & totalDocs & ","
         set jsonOutput to jsonOutput & "\"timeline\":["
         
-        repeat with i from 1 to count of monthlyData
+        repeat with i from 1 to count of sortedMonthlyData
             if i > 1 then set jsonOutput to jsonOutput & ","
-            set monthInfo to item i of monthlyData
+            set monthInfo to item i of sortedMonthlyData
             set jsonOutput to jsonOutput & "{"
             set jsonOutput to jsonOutput & "\"period\":\"" & (monthName of monthInfo) & "\","
             set jsonOutput to jsonOutput & "\"documentCount\":" & (docCount of monthInfo)
@@ -216,7 +219,27 @@ on identifyTrends(databaseName)
         if databaseName is "" then
             set searchResults to search "*"
         else
-            set searchResults to search "*" in database databaseName
+            -- Find database by name
+            set targetDB to missing value
+            repeat with db in databases
+                if name of db is databaseName then
+                    set targetDB to db
+                    exit repeat
+                end if
+            end repeat
+            
+            if targetDB is not missing value then
+                tell targetDB
+                    set searchResults to search "*"
+                end tell
+            else
+                -- Return error if database not found
+                set jsonOutput to "{"
+                set jsonOutput to jsonOutput & "\"error\":\"Database not found: " & databaseName & "\","
+                set jsonOutput to jsonOutput & "\"database_requested\":\"" & databaseName & "\""
+                set jsonOutput to jsonOutput & "}"
+                return jsonOutput
+            end if
         end if
         
         -- Separate recent from older
@@ -364,6 +387,65 @@ on removeItemAtIndex(theList, theIndex)
     end repeat
     return newList
 end removeItemAtIndex
+
+-- Helper: Sort monthly data chronologically
+on sortMonthlyData(monthlyData)
+    set sorted to {}
+    set working to monthlyData
+    
+    repeat (count of monthlyData) times
+        if (count of working) = 0 then exit repeat
+        
+        set earliestDate to missing value
+        set earliestIndex to 1
+        
+        repeat with i from 1 to count of working
+            set monthEntry to item i of working
+            set monthStr to monthName of monthEntry
+            set entryDate to my parseMonthString(monthStr)
+            
+            if earliestDate is missing value or entryDate < earliestDate then
+                set earliestDate to entryDate
+                set earliestIndex to i
+            end if
+        end repeat
+        
+        set end of sorted to item earliestIndex of working
+        set working to my removeItemAtIndex(working, earliestIndex)
+    end repeat
+    
+    return sorted
+end sortMonthlyData
+
+-- Helper: Parse month string to date for comparison
+on parseMonthString(monthStr)
+    try
+        -- Convert "January 2024" to a date for comparison
+        set monthName to word 1 of monthStr
+        set yearStr to word 2 of monthStr
+        set year to yearStr as integer
+        
+        -- Map month names to numbers
+        if monthName is "January" then set monthNum to 1
+        if monthName is "February" then set monthNum to 2
+        if monthName is "March" then set monthNum to 3
+        if monthName is "April" then set monthNum to 4
+        if monthName is "May" then set monthNum to 5
+        if monthName is "June" then set monthNum to 6
+        if monthName is "July" then set monthNum to 7
+        if monthName is "August" then set monthNum to 8
+        if monthName is "September" then set monthNum to 9
+        if monthName is "October" then set monthNum to 10
+        if monthName is "November" then set monthNum to 11
+        if monthName is "December" then set monthNum to 12
+        
+        -- Create a comparable value (year * 100 + month)
+        return year * 100 + monthNum
+    on error
+        -- Fallback: return a large number so unparseable dates go to end
+        return 999999
+    end try
+end parseMonthString
 
 -- Helper: Escape string for JSON
 on escapeString(inputString)

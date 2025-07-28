@@ -15,13 +15,34 @@ on run argv
                 return "{\"error\":\"Document not found\"}"
             end if
             
-            -- Get document content and metadata
-            set docText to plain text of theRecord
+            -- Get basic metadata first
+            set docName to name of theRecord
+            set docType to type of theRecord as string
+            
+            -- Get document content
+            set docText to ""
+            try
+                set docText to plain text of theRecord
+            on error
+                -- If plain text fails, try to get comment or return error for binary files
+                try
+                    set docText to comment of theRecord
+                    if docText is missing value or docText = "" then
+                        -- Check if it's a binary file type that needs OCR
+                        if docType is in {"PDF document", "image"} then
+                            return "{\"error\":\"Document requires OCR processing first. Use ocr_document tool.\",\"documentType\":\"" & docType & "\",\"documentName\":\"" & my escapeString(docName) & "\"}"
+                        else
+                            return "{\"error\":\"Unable to extract text from document\",\"documentType\":\"" & docType & "\",\"documentName\":\"" & my escapeString(docName) & "\"}"
+                        end if
+                    end if
+                on error
+                    return "{\"error\":\"Document has no readable text content\",\"documentType\":\"" & docType & "\",\"documentName\":\"" & my escapeString(docName) & "\"}"
+                end try
+            end try
+            
             if docText is missing value or docText = "" then
                 set docText to " " -- Handle empty documents
             end if
-            set docName to name of theRecord
-            set docType to type of theRecord as string
             set docURL to URL of theRecord
             set docComment to comment of theRecord
             

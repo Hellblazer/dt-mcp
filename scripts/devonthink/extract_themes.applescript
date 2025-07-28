@@ -1,5 +1,5 @@
--- Extract themes using DEVONthink's native AI classification
--- Replaces manual word frequency analysis with DEVONthink 4's built-in AI
+-- Extract themes from document content using tags and content analysis
+-- Uses document tags as primary themes and analyzes content for additional themes
 
 on run argv
     if (count of argv) < 1 then
@@ -18,70 +18,124 @@ on run argv
             set themeScores to {}
             set documentCount to count of documentUUIDs
             set processedDocs to 0
+            set allWords to {}
+            set wordCounts to {}
             
-            -- Process each document using DEVONthink's native AI classification
+            -- Common words to exclude
+            set stopWords to {"the", "and", "for", "are", "but", "not", "you", "all", "would", "her", "she", "there", "their", "what", "out", "about", "who", "get", "which", "when", "make", "can", "like", "time", "just", "him", "know", "take", "into", "year", "your", "some", "could", "them", "other", "than", "then", "now", "only", "over", "also", "after", "use", "two", "how", "our", "work", "well", "way", "even", "new", "want", "any", "these", "give", "most", "was", "have", "this", "with", "that", "from", "they", "will", "been", "has", "had", "were", "said", "did", "each", "such", "same", "where", "being"}
+            
+            -- Process each document
             repeat with docUUID in documentUUIDs
                 try
                     set theRecord to get record with uuid docUUID
                     if theRecord is not missing value then
                         set processedDocs to processedDocs + 1
                         
-                        -- Use DEVONthink's AI to classify the document
-                        set classifications to classify record theRecord
-                        
-                        -- Extract themes from AI classification results
-                        repeat with j from 1 to 8 -- Consider top 8 classification suggestions
-                            if j > (count of classifications) then exit repeat
-                            
-                            set suggestion to item j of classifications
-                            set groupName to name of suggestion
-                            set groupScore to score of suggestion
-                            set groupPath to location of suggestion
-                            
-                            -- Skip generic groups but keep meaningful classifications
-                            if groupName is not in {"Inbox", "old inbox", "New Group", "Unfiled", "Trash", ""} and (count of groupName) > 0 then
-                                -- Add group name as primary theme
+                        -- First, add document tags as themes with high weight
+                        set docTags to tags of theRecord
+                        repeat with tag in docTags
+                            set tag to tag as string
+                            if tag is not "" then
                                 set found to false
-                                repeat with k from 1 to count of allThemes
-                                    if item k of allThemes = groupName then
-                                        set item k of themeScores to (item k of themeScores) + groupScore
+                                repeat with i from 1 to count of allThemes
+                                    if item i of allThemes = tag then
+                                        set item i of themeScores to (item i of themeScores) + 10
                                         set found to true
                                         exit repeat
                                     end if
                                 end repeat
                                 
                                 if not found then
-                                    set end of allThemes to groupName
-                                    set end of themeScores to groupScore
-                                end if
-                                
-                                -- Extract additional theme words from group path hierarchy
-                                if groupPath contains "/" and groupPath ≠ "/" then
-                                    set pathThemes to my extractPathThemes(groupPath)
-                                    repeat with pathTheme in pathThemes
-                                        if pathTheme ≠ groupName and (count of pathTheme) > 3 then
-                                            set found to false
-                                            repeat with k from 1 to count of allThemes
-                                                if item k of allThemes = pathTheme then
-                                                    set item k of themeScores to (item k of themeScores) + (groupScore / 3)
-                                                    set found to true
-                                                    exit repeat
-                                                end if
-                                            end repeat
-                                            
-                                            if not found then
-                                                set end of allThemes to pathTheme
-                                                set end of themeScores to (groupScore / 3)
-                                            end if
-                                        end if
-                                    end repeat
+                                    set end of allThemes to tag
+                                    set end of themeScores to 10
                                 end if
                             end if
                         end repeat
+                        
+                        -- Then analyze document content
+                        set docText to ""
+                        try
+                            set docText to plain text of theRecord
+                        on error
+                            try
+                                set docText to comment of theRecord
+                            end try
+                        end try
+                        
+                        if docText is not "" then
+                            -- Get document name and add meaningful words from it
+                            set docName to name of theRecord
+                            set nameWords to words of docName
+                            repeat with theWord in nameWords
+                                set theWord to theWord as string
+                                if (length of theWord) > 3 and theWord is not in stopWords then
+                                    set found to false
+                                    repeat with i from 1 to count of allThemes
+                                        if item i of allThemes = theWord then
+                                            set item i of themeScores to (item i of themeScores) + 5
+                                            set found to true
+                                            exit repeat
+                                        end if
+                                    end repeat
+                                    
+                                    if not found then
+                                        set end of allThemes to theWord
+                                        set end of themeScores to 5
+                                    end if
+                                end if
+                            end repeat
+                            
+                            -- Extract key phrases from content (first 1000 words)
+                            set docWords to words of docText
+                            set wordLimit to 1000
+                            if (count of docWords) < wordLimit then set wordLimit to count of docWords
+                            
+                            repeat with i from 1 to wordLimit
+                                set theWord to item i of docWords as string
+                                -- Only count words that are long enough and not stopwords
+                                if (length of theWord) > 4 and theWord is not in stopWords then
+                                    set found to false
+                                    repeat with j from 1 to count of allWords
+                                        if item j of allWords = theWord then
+                                            set item j of wordCounts to (item j of wordCounts) + 1
+                                            set found to true
+                                            exit repeat
+                                        end if
+                                    end repeat
+                                    
+                                    if not found then
+                                        set end of allWords to theWord
+                                        set end of wordCounts to 1
+                                    end if
+                                end if
+                            end repeat
+                        end if
                     end if
                 on error
                     -- Skip documents that can't be processed
                 end try
+            end repeat
+            
+            -- Add high-frequency words from content as themes
+            repeat with i from 1 to count of allWords
+                if item i of wordCounts > 2 then -- Word appears in multiple docs or multiple times
+                    set theWord to item i of allWords
+                    set wordScore to item i of wordCounts
+                    
+                    set found to false
+                    repeat with j from 1 to count of allThemes
+                        if item j of allThemes = theWord then
+                            set item j of themeScores to (item j of themeScores) + wordScore
+                            set found to true
+                            exit repeat
+                        end if
+                    end repeat
+                    
+                    if not found then
+                        set end of allThemes to theWord
+                        set end of themeScores to wordScore
+                    end if
+                end if
             end repeat
             
             -- Sort themes by AI confidence scores
@@ -99,7 +153,7 @@ on run argv
             set jsonOutput to jsonOutput & "\"documentCount\":" & documentCount & ","
             set jsonOutput to jsonOutput & "\"processedDocuments\":" & processedDocs & ","
             set jsonOutput to jsonOutput & "\"themes\":" & my listToJSON(finalThemes) & ","
-            set jsonOutput to jsonOutput & "\"method\":\"devonthink_ai_classification\","
+            set jsonOutput to jsonOutput & "\"method\":\"tags_and_content_analysis\","
             set jsonOutput to jsonOutput & "\"status\":\"success\""
             set jsonOutput to jsonOutput & "}"
             
@@ -157,13 +211,13 @@ end cleanThemeName
 on sortThemesByScore(themes, scores)
     set indexedList to {}
     repeat with i from 1 to count of themes
-        set end of indexedList to {theme:item i of themes, score:item i of scores}
+        set end of indexedList to {theme:item i of themes, |score|:item i of scores}
     end repeat
     
     -- Sort by score (bubble sort, descending)
     repeat with i from 1 to (count of indexedList) - 1
         repeat with j from i + 1 to count of indexedList
-            if score of (item i of indexedList) < score of (item j of indexedList) then
+            if |score| of (item i of indexedList) < |score| of (item j of indexedList) then
                 set temp to item i of indexedList
                 set item i of indexedList to item j of indexedList
                 set item j of indexedList to temp

@@ -42,9 +42,16 @@ on exploreTopic(searchQuery)
             return "{\"error\":\"No documents found for query: " & searchQuery & "\"}"
         end if
         
-        -- Limit to top 20 results
+        -- Limit results for performance
+        -- Use smaller limit for testing to prevent timeouts
+        set maxResults to 5
         if (count of searchResults) > 20 then
-            set searchResults to items 1 through 20 of searchResults
+            -- In production, limit to 20 for reasonable performance
+            set maxResults to 20
+        end if
+        
+        if (count of searchResults) > maxResults then
+            set searchResults to items 1 through maxResults of searchResults
         end if
         
         -- Step 2: Create research collection

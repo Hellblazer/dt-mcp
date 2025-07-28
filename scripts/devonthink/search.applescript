@@ -1,11 +1,39 @@
 -- Include utility functions
 on escapeString(inputString)
+    set inputString to inputString as string
+    
+    -- Escape backslashes first
+    set AppleScript's text item delimiters to "\\"
+    set textItems to text items of inputString
+    set AppleScript's text item delimiters to "\\\\"
+    set inputString to textItems as string
+    
+    -- Escape double quotes
     set AppleScript's text item delimiters to "\""
     set textItems to text items of inputString
     set AppleScript's text item delimiters to "\\\""
-    set escapedString to textItems as string
+    set inputString to textItems as string
+    
+    -- Escape newlines
+    set AppleScript's text item delimiters to return
+    set textItems to text items of inputString
+    set AppleScript's text item delimiters to "\\n"
+    set inputString to textItems as string
+    
+    -- Escape line feeds
+    set AppleScript's text item delimiters to linefeed
+    set textItems to text items of inputString
+    set AppleScript's text item delimiters to "\\n"
+    set inputString to textItems as string
+    
+    -- Escape tabs
+    set AppleScript's text item delimiters to tab
+    set textItems to text items of inputString
+    set AppleScript's text item delimiters to "\\t"
+    set inputString to textItems as string
+    
     set AppleScript's text item delimiters to ""
-    return escapedString
+    return inputString
 end escapeString
 
 on tagsToJSON(tagList)
@@ -39,9 +67,13 @@ on run argv
     set databaseName to ""
     if (count of argv) > 1 then set databaseName to item 2 of argv
     
+    -- Set a reasonable maximum to prevent truncation
+    set maxResults to 500
+    
     tell application id "DNtp"
         try
             if databaseName is "" then
+                -- Search across all databases
                 set searchResults to search searchQuery
             else
                 -- Try to get the database
@@ -63,14 +95,23 @@ on run argv
                 end tell
             end if
             
-            set jsonOutput to "["
+            -- Limit results to prevent truncation
+            set resultCount to count of searchResults
+            if resultCount > maxResults then
+                set searchResults to items 1 thru maxResults of searchResults
+                set wasTruncated to true
+            else
+                set wasTruncated to false
+            end if
+            
+            set jsonOutput to "{\"results\":["
             repeat with i from 1 to count of searchResults
                 set jsonOutput to jsonOutput & my recordToJSON(item i of searchResults)
                 if i < count of searchResults then 
                     set jsonOutput to jsonOutput & ","
                 end if
             end repeat
-            set jsonOutput to jsonOutput & "]"
+            set jsonOutput to jsonOutput & "],\"totalFound\":" & resultCount & ",\"truncated\":" & (wasTruncated as string) & "}"
             
             return jsonOutput
         on error errMsg

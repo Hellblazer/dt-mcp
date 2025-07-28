@@ -40,10 +40,14 @@ on run argv
     if (count of argv) > 1 then set outputFormat to item 2 of argv
     
     tell application id "DNtp"
-        set theRecord to get record with uuid documentUUID
-        if theRecord is missing value then
-            return "{\"error\":\"Document not found\"}"
-        end if
+        try
+            set theRecord to get record with uuid documentUUID
+            if theRecord is missing value then
+                return "{\"error\":\"Document with UUID '" & documentUUID & "' not found\"}"
+            end if
+        on error errMsg
+            return "{\"error\":\"Document with UUID '" & documentUUID & "' not found: " & my escapeString(errMsg) & "\"}"
+        end try
         
         set recordInfo to my recordToJSON(theRecord)
         

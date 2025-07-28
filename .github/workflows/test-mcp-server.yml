@@ -126,6 +126,11 @@ jobs:
         
         # Run the test
         npx mocha test_mcp_basic.js || echo "MCP basic tests failed (expected on CI without DEVONthink)"
+        
+    - name: Run automated test suite
+      run: |
+        echo "Running automated test suite for parameter validation fixes..."
+        npm run test:ci
 
   test-phase4-features:
     runs-on: macos-latest

@@ -27,84 +27,11 @@ on run argv
                 set searchDatabases to databases
             end if
             
-            -- Use global search to find smart groups
-            set searchQuery to "kind:smart-group"
-            if databaseName is not "" then
-                -- Search in specific database
-                repeat with db in searchDatabases
-                    try
-                        set smartGroupResults to search searchQuery in db
-                        set dbName to name of db
-                        
-                        repeat with rec in smartGroupResults
-                            try
-                                set groupName to name of rec
-                                set groupUUID to uuid of rec
-                                set groupLocation to location of rec
-                                set groupCount to 0
-                                
-                                try
-                                    set groupCount to count of children of rec
-                                end try
-                                
-                                set groupJSON to "{"
-                                set groupJSON to groupJSON & "\"name\":\"" & my escapeString(groupName) & "\","
-                                set groupJSON to groupJSON & "\"uuid\":\"" & groupUUID & "\","
-                                set groupJSON to groupJSON & "\"database\":\"" & my escapeString(dbName) & "\","
-                                set groupJSON to groupJSON & "\"location\":\"" & my escapeString(groupLocation) & "\","
-                                set groupJSON to groupJSON & "\"document_count\":" & groupCount
-                                set groupJSON to groupJSON & "}"
-                                
-                                set end of allSmartGroups to groupJSON
-                            on error
-                                -- Skip records that can't be processed
-                            end try
-                        end repeat
-                    on error
-                        -- Skip databases that can't be accessed
-                    end try
-                end repeat
-            else
-                -- Search across all databases
-                try
-                    set smartGroupResults to search searchQuery
-                    
-                    repeat with rec in smartGroupResults
-                        try
-                            set groupName to name of rec
-                            set groupUUID to uuid of rec
-                            set groupLocation to location of rec
-                            set groupCount to 0
-                            set recDB to ""
-                            
-                            try
-                                set groupCount to count of children of rec
-                            end try
-                            
-                            -- Try to determine which database this record is from
-                            try
-                                set recDB to name of (database of rec)
-                            on error
-                                set recDB to "unknown"
-                            end try
-                            
-                            set groupJSON to "{"
-                            set groupJSON to groupJSON & "\"name\":\"" & my escapeString(groupName) & "\","
-                            set groupJSON to groupJSON & "\"uuid\":\"" & groupUUID & "\","
-                            set groupJSON to groupJSON & "\"database\":\"" & my escapeString(recDB) & "\","
-                            set groupJSON to groupJSON & "\"location\":\"" & my escapeString(groupLocation) & "\","
-                            set groupJSON to groupJSON & "\"document_count\":" & groupCount
-                            set groupJSON to groupJSON & "}"
-                            
-                            set end of allSmartGroups to groupJSON
-                        on error
-                            -- Skip records that can't be processed
-                        end try
-                    end repeat
-                on error
-                    -- If global search fails, return empty list
-                end try
-            end if
+            -- Iterate through databases to find smart groups
+            repeat with db in searchDatabases
+                set dbName to name of db
+                my findSmartGroupsInRecord(root of db, dbName, allSmartGroups, "/")
+            end repeat
             
             -- Build response
             set jsonOutput to "{"
@@ -121,6 +48,66 @@ on run argv
         end try
     end tell
 end run
+
+-- Recursively find smart groups in a record and its children
+on findSmartGroupsInRecord(parentRecord, dbName, smartGroupsList, currentPath)
+    tell application id "DNtp"
+        try
+            -- Get children of the current record
+            set childRecords to children of parentRecord
+            
+            repeat with childRecord in childRecords
+                try
+                    set recordType to type of childRecord as string
+                    set recordName to name of childRecord
+                    
+                    -- Check if it's a smart group
+                    if recordType is "smart group" then
+                        set groupUUID to uuid of childRecord
+                        set groupLocation to currentPath
+                        set groupCount to 0
+                        
+                        -- Try to get the count of items in the smart group
+                        try
+                            set groupCount to count of children of childRecord
+                        on error
+                            -- Some smart groups may not have accessible children
+                            set groupCount to 0
+                        end try
+                        
+                        -- Get the search predicate if available
+                        set searchPredicate to ""
+                        try
+                            set searchPredicate to search predicate of childRecord
+                        on error
+                            -- Not all smart groups expose their search predicate
+                        end try
+                        
+                        set groupJSON to "{"
+                        set groupJSON to groupJSON & "\"name\":\"" & my escapeString(recordName) & "\","
+                        set groupJSON to groupJSON & "\"uuid\":\"" & groupUUID & "\","
+                        set groupJSON to groupJSON & "\"database\":\"" & my escapeString(dbName) & "\","
+                        set groupJSON to groupJSON & "\"location\":\"" & my escapeString(groupLocation) & "\","
+                        set groupJSON to groupJSON & "\"document_count\":" & groupCount
+                        if searchPredicate is not "" then
+                            set groupJSON to groupJSON & ",\"search_predicate\":\"" & my escapeString(searchPredicate) & "\""
+                        end if
+                        set groupJSON to groupJSON & "}"
+                        
+                        set end of smartGroupsList to groupJSON
+                    else if recordType is "group" then
+                        -- Recursively search in regular groups
+                        my findSmartGroupsInRecord(childRecord, dbName, smartGroupsList, currentPath & recordName & "/")
+                    end if
+                on error
+                    -- Skip records that can't be accessed
+                end try
+            end repeat
+        on error
+            -- Skip if we can't get children
+        end try
+    end tell
+end findSmartGroupsInRecord
 
 -- Join list items with separator
 on joinList(itemList, separator)

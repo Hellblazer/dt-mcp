@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
 import { systemPrompt, contextPrompts } from './src/system-prompt.js';
+import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +46,28 @@ class Logger {
 const logger = new Logger('devonthink-mcp');
 const devonthink = new DEVONthinkService();
 
+// Helper function to format errors consistently across all tools
+function formatToolError(error, toolName, context = {}) {
+  const errorMessage = error?.message || error?.error?.message || error?.toString() || 'Unknown error occurred';
+  const errorDetails = {
+    tool: toolName,
+    timestamp: new Date().toISOString(),
+    ...context
+  };
+  
+  logger.error(`${toolName} error: ${errorMessage}`);
+  
+  return {
+    content: [{ 
+      type: 'text', 
+      text: JSON.stringify({
+        error: errorMessage,
+        details: errorDetails
+      }, null, 2) 
+    }]
+  };
+}
+
 
 async function main() {
   logger.info('Starting DEVONthink MCP server');
@@ -74,9 +97,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'search_devonthink', { query, database, limit, offset });
         }
       }
     );
@@ -86,7 +107,7 @@ async function main() {
       'Read the content and metadata of a DEVONthink document',
       {
         uuid: z.string().describe('Document UUID'),
-        includeContent: z.boolean().optional().describe('Include document content (default: true)')
+        includeContent: z.boolean().optional().default(true).describe('Include document content (default: true)')
       },
       async ({ uuid, includeContent = true }) => {
         logger.info(`Reading document: ${uuid}`);
@@ -96,9 +117,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(document, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'read_document', { uuid, includeContent });
         }
       }
     );
@@ -109,7 +128,7 @@ async function main() {
       {
         name: z.string().describe('Document name'),
         content: z.string().describe('Document content'),
-        type: z.enum(['markdown', 'rtf', 'txt']).optional().describe('Document type'),
+        type: z.enum(['markdown', 'rtf', 'txt']).optional().default('markdown').describe('Document type (default: markdown)'),
         groupPath: z.string().optional().describe('Path to target group (optional)')
       },
       async ({ name, content, type = 'markdown', groupPath }) => {
@@ -120,9 +139,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(document, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'create_document');
         }
       }
     );
@@ -139,9 +156,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(databases, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'list_databases');
         }
       }
     );
@@ -162,9 +177,27 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(document, null, 2) }]
           };
         } catch (error) {
+          return formatToolError(error, 'update_tags');
+        }
+      }
+    );
+
+    server.tool(
+      'delete_document',
+      'Delete a document from DEVONthink (DESTRUCTIVE OPERATION - USE WITH CAUTION)',
+      {
+        uuid: z.string().describe('Document UUID to delete'),
+        confirmDelete: z.boolean().optional().default(true).describe('Whether to show confirmation dialog (default: true)')
+      },
+      async ({ uuid, confirmDelete = true }) => {
+        logger.warn(`DELETE REQUEST for document: ${uuid} (confirm: ${confirmDelete})`);
+        try {
+          const result = await devonthink.deleteDocument(uuid, confirmDelete);
           return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
+        } catch (error) {
+          return formatToolError(error, 'delete_document', { uuid, confirmDelete });
         }
       }
     );
@@ -174,7 +207,7 @@ async function main() {
       'Get documents related to a specific document using DEVONthink AI',
       {
         uuid: z.string().describe('Document UUID'),
-        limit: z.number().optional().describe('Maximum number of related documents (default: 10)')
+        limit: z.number().optional().default(10).describe('Maximum number of related documents (default: 10)')
       },
       async ({ uuid, limit = 10 }) => {
         logger.info(`Getting related documents for: ${uuid}`);
@@ -184,9 +217,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(documents, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'get_related_documents');
         }
       }
     );
@@ -207,9 +238,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(smartGroup, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'create_smart_group');
         }
       }
     );
@@ -228,9 +257,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'ocr_document');
         }
       }
     );
@@ -251,9 +278,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'batch_search');
         }
       }
     );
@@ -263,7 +288,7 @@ async function main() {
       'Read multiple documents from DEVONthink simultaneously',
       {
         uuids: z.array(z.string()).describe('Array of document UUIDs'),
-        includeContent: z.boolean().optional().describe('Include document content (default: false)')
+        includeContent: z.boolean().optional().default(false).describe('Include document content (default: false)')
       },
       async ({ uuids, includeContent = false }) => {
         logger.info(`Batch reading ${uuids.length} documents`);
@@ -273,9 +298,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(documents, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'batch_read_documents');
         }
       }
     );
@@ -286,7 +309,7 @@ async function main() {
       'Find connections between a document and other documents (AI-based, references, etc.)',
       {
         uuid: z.string().describe('Document UUID'),
-        maxResults: z.number().optional().describe('Maximum results to return (default: 10)')
+        maxResults: z.number().optional().default(10).describe('Maximum results to return (default: 10)')
       },
       async ({ uuid, maxResults = 10 }) => {
         logger.info(`Finding connections for document: ${uuid}`);
@@ -296,9 +319,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(connections, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'find_connections');
         }
       }
     );
@@ -318,9 +339,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(comparison, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'compare_documents');
         }
       }
     );
@@ -341,9 +360,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(collection, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'create_collection');
         }
       }
     );
@@ -364,9 +381,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'add_to_collection');
         }
       }
     );
@@ -377,19 +392,22 @@ async function main() {
       'Build a knowledge graph showing document relationships with depth control',
       {
         uuid: z.string().describe('Starting document UUID'),
-        maxDepth: z.number().optional().describe('Maximum traversal depth (default: 3)')
+        maxDepth: z.number().optional().default(3).describe('Maximum traversal depth (default: 3)')
       },
       async ({ uuid, maxDepth = 3 }) => {
         logger.info(`Building knowledge graph from document: ${uuid} with depth: ${maxDepth}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
         try {
-          const graph = await devonthink.buildKnowledgeGraph(uuid, maxDepth);
+          const graph = await devonthink.buildKnowledgeGraph(uuid, maxDepth, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(graph, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'build_knowledge_graph');
         }
       }
     );
@@ -400,7 +418,7 @@ async function main() {
       {
         startUUID: z.string().describe('Starting document UUID'),
         targetUUID: z.string().describe('Target document UUID'),
-        maxDepth: z.number().optional().describe('Maximum search depth (default: 5)')
+        maxDepth: z.number().optional().default(5).describe('Maximum search depth (default: 5)')
       },
       async ({ startUUID, targetUUID, maxDepth = 5 }) => {
         logger.info(`Finding shortest path from ${startUUID} to ${targetUUID}`);
@@ -410,9 +428,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(path, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'find_shortest_path');
         }
       }
     );
@@ -421,21 +437,24 @@ async function main() {
       'detect_knowledge_clusters',
       'Detect clusters of related documents based on tags and connections',
       {
-        searchQuery: z.string().optional().describe('Search query to find documents (empty = use current selection)'),
-        maxDocuments: z.number().optional().describe('Maximum documents to analyze (default: 50)'),
-        minClusterSize: z.number().optional().describe('Minimum cluster size (default: 3)')
+        searchQuery: z.string().optional().default('').describe('Search query to find documents (default: empty - uses current selection)'),
+        maxDocuments: z.number().optional().default(50).describe('Maximum documents to analyze (default: 50)'),
+        minClusterSize: z.number().optional().default(3).describe('Minimum cluster size (default: 3)')
       },
       async ({ searchQuery = '', maxDocuments = 50, minClusterSize = 3 }) => {
         logger.info(`Detecting knowledge clusters for: ${searchQuery || 'current selection'}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
         try {
-          const clusters = await devonthink.detectKnowledgeClusters(searchQuery, maxDocuments, minClusterSize);
+          const clusters = await devonthink.detectKnowledgeClusters(searchQuery, maxDocuments, minClusterSize, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(clusters, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'detect_knowledge_clusters');
         }
       }
     );
@@ -450,15 +469,21 @@ async function main() {
       },
       async ({ workflowType, queryOrUUID }) => {
         logger.info(`Running research workflow: ${workflowType} with ${queryOrUUID}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
         try {
-          const result = await devonthink.automateResearch(workflowType, queryOrUUID);
+          const result = await devonthink.automateResearch(workflowType, queryOrUUID, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'automate_research');
         }
       }
     );
@@ -469,7 +494,7 @@ async function main() {
       'Organize search results by relevance with performance optimization',
       {
         searchQuery: z.string().describe('Search query to organize results for'),
-        maxResults: z.number().optional().describe('Maximum results to process (default: 50)')
+        maxResults: z.number().optional().default(50).describe('Maximum results to process (default: 50)')
       },
       async ({ searchQuery, maxResults = 50 }) => {
         logger.info(`Organizing findings for: ${searchQuery} with max ${maxResults} results`);
@@ -479,9 +504,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'organize_findings');
         }
       }
     );
@@ -501,30 +524,31 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'analyze_document');
         }
       }
     );
 
     server.tool(
       'analyze_document_similarity',
-      'Compare multiple documents for similarity based on content and metadata',
+      'Compare multiple documents for similarity based on content and metadata (performance-optimized)',
       {
         uuids: z.array(z.string()).min(2).describe('Array of document UUIDs to compare (minimum 2)')
       },
       async ({ uuids }) => {
         logger.info(`Analyzing similarity between ${uuids.length} documents`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
         try {
-          const analysis = await devonthink.analyzeDocumentSimilarity(uuids);
+          const analysis = await devonthink.analyzeDocumentSimilarity(uuids, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(analysis, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'analyze_document_similarity');
         }
       }
     );
@@ -532,22 +556,28 @@ async function main() {
     // Phase 4: Knowledge Synthesis
     server.tool(
       'synthesize_documents',
-      'Create intelligent synthesis from multiple documents',
+      'Create intelligent synthesis from multiple documents (performance-optimized with automatic fallback)',
       {
         documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to synthesize'),
-        synthesisType: z.enum(['summary', 'consensus', 'insights']).optional().describe('Type of synthesis (default: summary)')
+        synthesisType: z.enum(['summary', 'consensus', 'insights']).optional().default('summary').describe('Type of synthesis (default: summary)')
       },
       async ({ documentUUIDs, synthesisType = 'summary' }) => {
         logger.info(`Synthesizing ${documentUUIDs.length} documents with type: ${synthesisType}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
         try {
-          const synthesis = await devonthink.synthesizeDocuments(documentUUIDs, synthesisType);
+          const synthesis = await devonthink.synthesizeDocuments(documentUUIDs, synthesisType, progressCallback);
           return {
             content: [{ type: 'text', text: JSON.stringify(synthesis, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'synthesize_documents');
         }
       }
     );
@@ -566,9 +596,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(themes, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'extract_themes');
         }
       }
     );
@@ -587,9 +615,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(classification, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'classify_document');
         }
       }
     );
@@ -609,9 +635,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(similarDocs, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'get_similar_documents');
         }
       }
     );
@@ -621,7 +645,7 @@ async function main() {
       'Create summaries at different levels of detail',
       {
         documentUUIDs: z.array(z.string()).min(1).describe('Array of document UUIDs to summarize'),
-        summaryLevel: z.enum(['brief', 'detailed', 'full']).optional().describe('Level of detail (default: brief)')
+        summaryLevel: z.enum(['brief', 'detailed', 'full']).optional().default('brief').describe('Level of detail (default: brief)')
       },
       async ({ documentUUIDs, summaryLevel = 'brief' }) => {
         logger.info(`Creating ${summaryLevel} summary for ${documentUUIDs.length} documents`);
@@ -631,9 +655,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'create_multi_level_summary');
         }
       }
     );
@@ -643,7 +665,7 @@ async function main() {
       'Track how a topic has evolved over time',
       {
         topic: z.string().describe('Topic or keyword to track'),
-        timeRange: z.enum(['week', 'month', 'year', 'all']).optional().describe('Time range to analyze (default: month)')
+        timeRange: z.enum(['week', 'month', 'year', 'all']).optional().default('month').describe('Time range to analyze (default: month)')
       },
       async ({ topic, timeRange = 'month' }) => {
         logger.info(`Tracking evolution of topic: ${topic} over ${timeRange}`);
@@ -653,9 +675,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(evolution, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'track_topic_evolution');
         }
       }
     );
@@ -674,9 +694,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(timeline, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'create_knowledge_timeline');
         }
       }
     );
@@ -695,9 +713,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(trends, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'identify_trends');
         }
       }
     );
@@ -721,9 +737,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'advanced_search');
         }
       }
     );
@@ -744,9 +758,7 @@ async function main() {
             content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
           };
         } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Error: ${error.message}` }]
-          };
+          return formatToolError(error, 'list_smart_groups');
         }
       }
     );
@@ -770,7 +782,7 @@ async function main() {
       - Discover tool combinations`,
       {
         toolName: z.string().describe('Tool name to get help for, or "list" for all tools'),
-        examples: z.boolean().optional().describe('Include usage examples')
+        examples: z.boolean().optional().default(false).describe('Include usage examples (default: false)')
       },
       async ({ toolName, examples = false }) => {
         logger.info(`Getting help for tool: ${toolName}`);

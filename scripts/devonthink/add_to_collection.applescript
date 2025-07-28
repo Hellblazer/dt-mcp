@@ -60,12 +60,13 @@ on run argv
             
             -- Return success
             set jsonOutput to "{"
-            set jsonOutput to jsonOutput & "\"success\":true,"
+            set jsonOutput to jsonOutput & "\"status\":\"success\","
+            set jsonOutput to jsonOutput & "\"data\":{"
             set jsonOutput to jsonOutput & "\"collectionUUID\":\"" & collectionUUID & "\","
             set jsonOutput to jsonOutput & "\"documentUUID\":\"" & documentUUID & "\","
             set jsonOutput to jsonOutput & "\"documentName\":\"" & my escapeString(name of targetDoc) & "\","
             set jsonOutput to jsonOutput & "\"added\":\"" & (current date as string) & "\""
-            set jsonOutput to jsonOutput & "}"
+            set jsonOutput to jsonOutput & "}}"
             
             return jsonOutput
             

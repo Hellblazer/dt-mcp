@@ -1,7 +1,7 @@
 {
   "name": "devonthink-mcp-server",
-  "version": "2.0.0",
-  "description": "Comprehensive MCP server for DEVONthink integration with 25+ AI-powered tools for knowledge management, research automation, and document intelligence",
+  "version": "2.0.1",
+  "description": "Performance-optimized MCP server for DEVONthink integration with 29 AI-powered tools, featuring intelligent sampling and automatic fallback for knowledge management, research automation, and document intelligence",
   "main": "server.js",
   "publishConfig": {
     "access": "public"
@@ -25,8 +25,15 @@
     "test:search": "python3 tests/test_search_functionality.py",
     "test:mcp": "npx @modelcontextprotocol/inspector server.js",
     "test:tool": "node tests/test_mcp_tool.js",
+    "test:automated": "node tests/automated-test-suite.js",
+    "test:ci": "node tests/test-parameter-validation.js",
+    "test:validation": "node tests/test-parameter-validation.js",
+    "test:all": "node tests/run-all-tests.js",
     "lint": "npx eslint server.js src/ --ext .js || echo 'ESLint not configured'",
-    "validate": "npm run lint && npm run test:scripts",
+    "lint:applescript": "./scripts/validate_applescripts.sh",
+    "lint:applescript:deep": "node scripts/lint_applescript.js",
+    "validate": "npm run lint && npm run lint:applescript && npm run lint:applescript:deep && npm run test:scripts",
+    "test:performance": "echo 'Testing performance optimizations...' && time npm run test:tool synthesize_documents '{\"documentUUIDs\": [\"test-uuid-1\", \"test-uuid-2\"], \"synthesisType\": \"summary\"}' && time npm run test:tool analyze_document_similarity '{\"uuids\": [\"test-uuid-1\", \"test-uuid-2\"]}'",
     "docs": "echo 'Documentation available in README.md'"
   },
   "dependencies": {
