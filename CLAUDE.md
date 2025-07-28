@@ -33,7 +33,7 @@ The DEVONthink MCP server is specifically designed for AI clients with these fea
 **Version**: 2.0.1  
 **Architecture**: Thin wrapper around DEVONthink 4 native AI  
 **Implementation**: Complete with performance optimizations  
-**Tools**: 29 specialized MCP tools (2 with optimized variants)  
+**Tools**: 30 specialized MCP tools (2 with optimized variants)  
 **Performance**: 30x+ improvement for expensive operations  
 **Testing**: Comprehensive test suite + CI/CD  
 **Quality**: Production-ready with full error handling  
@@ -90,13 +90,14 @@ dt-mcp/
 └── CLAUDE.md                    # This file
 ```
 
-## Complete Tool Reference (29 Tools)
+## Complete Tool Reference (30 Tools)
 
-### Core Operations (8 tools)
+### Core Operations (9 tools)
 ```bash
 search_devonthink           # Full-text search with DEVONthink syntax
 read_document              # Document content and metadata
 create_document            # New document creation
+delete_document            # Document deletion with safety confirmation
 list_databases             # Database enumeration
 update_tags                # Tag management
 get_related_documents      # AI-suggested relations

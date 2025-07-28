@@ -162,7 +162,11 @@ export class DEVONthinkService {
   }
 
   async createDocument(name, content, type = 'markdown', groupPath) {
-    const args = groupPath ? [name, content, type, groupPath] : [name, content, type];
+    // Validate required parameters
+    const validatedName = validators.validateNonEmptyString(name, 'name');
+    const validatedContent = validators.validateNonEmptyString(content, 'content');
+    
+    const args = groupPath ? [validatedName, validatedContent, type, groupPath] : [validatedName, validatedContent, type];
     return await this.runAppleScript('create_document', args);
   }
 
@@ -172,8 +176,21 @@ export class DEVONthinkService {
 
   async updateTags(uuid, tags) {
     validators.validateUUID(uuid, 'uuid');
-    validators.validateNonEmptyArray(tags, 'tags');
+    
+    // Handle empty array gracefully - clear all tags
+    if (!Array.isArray(tags)) {
+      throw errorHandlers.invalidParameter('tags', tags, 'array of tag strings');
+    }
+    
     return await this.runAppleScript('update_tags', [uuid, tags.join(',')]);
+  }
+  
+  async deleteDocument(uuid, confirmDelete = true) {
+    // Validate UUID
+    validators.validateUUID(uuid, 'uuid');
+    
+    const args = [uuid, confirmDelete ? 'true' : 'false'];
+    return await this.runAppleScript('delete_document', args);
   }
 
   async getRelatedDocuments(uuid, limit = 10) {
@@ -183,19 +200,59 @@ export class DEVONthinkService {
   }
 
   async createSmartGroup(name, searchQuery, database) {
-    const args = database ? [name, searchQuery, database] : [name, searchQuery];
+    // Validate required parameters
+    const validatedName = validators.validateNonEmptyString(name, 'name');
+    const validatedSearchQuery = validators.validateNonEmptyString(searchQuery, 'searchQuery');
+    
+    const args = database ? [validatedName, validatedSearchQuery, database] : [validatedName, validatedSearchQuery];
     return await this.runAppleScript('create_smart_group', args);
   }
 
   async ocrDocument(uuid) {
     validators.validateUUID(uuid, 'uuid');
+    
+    // Pre-validate document type
+    try {
+      const metadata = await this.readDocument(uuid, false);
+      const documentType = metadata.type || metadata.kind || '';
+      const supportedTypes = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'tiff', 'image'];
+      
+      // Check if document type is supported for OCR
+      const typeStr = documentType.toLowerCase();
+      const isSupported = supportedTypes.some(supported => 
+        typeStr.includes(supported) || typeStr === supported
+      );
+      
+      if (!isSupported) {
+        throw errorHandlers.invalidParameter('document type', documentType, 
+          `OCR-supported document type. Supported types: ${supportedTypes.join(', ')}`);
+      }
+    } catch (error) {
+      // Re-throw if it's our validation error
+      if (error.error && error.error.code === ErrorTypes.INVALID_PARAMETER) {
+        throw error;
+      }
+      // Otherwise continue with OCR attempt (document might exist but metadata read failed)
+    }
+    
     return await this.runAppleScript('ocr_document', [uuid]);
   }
 
   async batchSearch(queries, database, maxResultsPerQuery = 20) {
     // Validate queries array
-    if (!Array.isArray(queries) || queries.length === 0) {
-      throw errorHandlers.invalidParameter('queries', queries, 'non-empty array of search queries');
+    if (!Array.isArray(queries)) {
+      throw errorHandlers.invalidParameter('queries', queries, 'array of search queries');
+    }
+    
+    // Handle empty array gracefully
+    if (queries.length === 0) {
+      return createSuccessResponse({
+        queries: [],
+        database: database || 'all',
+        results: {},
+        maxResultsPerQuery: maxResultsPerQuery,
+        message: 'No queries provided'
+      });
     }
     
     // Validate maxResultsPerQuery
@@ -229,8 +286,23 @@ export class DEVONthinkService {
 
   async batchReadDocuments(uuids, includeContent = false) {
     // Validate uuids array
-    if (!Array.isArray(uuids) || uuids.length === 0) {
-      throw errorHandlers.invalidParameter('uuids', uuids, 'non-empty array of document UUIDs');
+    if (!Array.isArray(uuids)) {
+      throw errorHandlers.invalidParameter('uuids', uuids, 'array of document UUIDs');
+    }
+    
+    // Handle empty array gracefully
+    if (uuids.length === 0) {
+      return createSuccessResponse({
+        documents: [],
+        successful: [],
+        failed: [],
+        message: 'No UUIDs provided'
+      }, {
+        tool: 'batch_read_documents',
+        totalRequested: 0,
+        successCount: 0,
+        failureCount: 0
+      });
     }
     
     // Read multiple documents in parallel
@@ -281,7 +353,16 @@ export class DEVONthinkService {
 
   async buildKnowledgeGraph(uuid, maxDepth = 3, progressCallback = null) {
     validators.validateUUID(uuid, 'uuid');
-    const validatedDepth = validators.validateLimit(maxDepth, 3, 10);
+    
+    // Custom validation for maxDepth to use correct parameter name
+    if (maxDepth === undefined || maxDepth === null) {
+      maxDepth = 3;
+    }
+    const depth = parseInt(maxDepth);
+    if (isNaN(depth) || depth < 1 || depth > 10) {
+      throw errorHandlers.invalidParameter('maxDepth', maxDepth, 'positive integer between 1 and 10');
+    }
+    const validatedDepth = depth;
     
     const operationName = 'build_knowledge_graph';
     
@@ -315,9 +396,14 @@ export class DEVONthinkService {
     }, operationName, progressCallback);
   }
 
-  async automateResearch(workflowType, queryOrUUID, progressCallback = null) {
+  async automateResearch(workflowType, queryOrUUID, progressCallback = null, maxResults = null) {
     // Pass workflow type and query/UUID to the AppleScript
     const args = [workflowType, queryOrUUID];
+    
+    // Add optional maxResults parameter for performance control
+    if (maxResults !== null) {
+      args.push(maxResults.toString());
+    }
     
     const operationName = `automate_research_${workflowType}`;
     

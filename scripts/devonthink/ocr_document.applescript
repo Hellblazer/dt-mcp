@@ -29,12 +29,13 @@ on run argv
             
             -- Return success with document info
             set jsonResponse to "{"
-            set jsonResponse to jsonResponse & "\"success\":true,"
+            set jsonResponse to jsonResponse & "\"status\":\"success\","
+            set jsonResponse to jsonResponse & "\"data\":{"
             set jsonResponse to jsonResponse & "\"message\":\"OCR processing initiated\","
             set jsonResponse to jsonResponse & "\"uuid\":\"" & uuid of theRecord & "\","
             set jsonResponse to jsonResponse & "\"name\":\"" & my escapeString(name of theRecord) & "\","
             set jsonResponse to jsonResponse & "\"type\":\"" & (type of theRecord as string) & "\""
-            set jsonResponse to jsonResponse & "}"
+            set jsonResponse to jsonResponse & "}}"
             
             return jsonResponse
         on error errMsg

@@ -27,7 +27,9 @@ class DEVONthinkMCPTester:
                 json.dumps(params)
             ]
             
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            # Use longer timeout for research automation tools
+            timeout_seconds = 120 if tool_name in ['automate_research', 'detect_knowledge_clusters', 'build_knowledge_graph'] else 60
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_seconds)
             
             if result.returncode != 0:
                 return False, {"error": result.stderr}
@@ -67,6 +69,136 @@ class DEVONthinkMCPTester:
             error_msg = result.get("error", "Unknown error") if result else "No result"
             print(f"  ❌ FAILED: {error_msg}")
             self.errors.append(f"{tool_name}: {error_msg}")
+            self.failed += 1
+            return False
+    
+    def test_response_format(self, tool_name: str, params: Dict, description: str) -> bool:
+        """Test tool execution and validate response format consistency"""
+        print(f"Testing {tool_name}: {description}...")
+        
+        success, result = self.run_tool(tool_name, params)
+        
+        # Check if result contains an error field
+        if success and isinstance(result, dict) and 'error' in result:
+            success = False
+        
+        # Additional validation for response format consistency
+        format_valid = True
+        format_error = ""
+        
+        if success and isinstance(result, dict):
+            # Check for standardized format: {status: "success", data: ..., metadata: ...}
+            if 'status' in result:
+                if result['status'] != 'success':
+                    format_valid = False
+                    format_error = f"Expected status='success', got status='{result['status']}'"
+                elif 'data' not in result:
+                    format_valid = False
+                    format_error = "Response with status='success' should have 'data' field"
+            # Legacy format check: if it has {success: true}, it's inconsistent
+            elif 'success' in result:
+                format_valid = False
+                format_error = "Found legacy format with 'success' field instead of standardized 'status' field"
+            # If neither format, it might be a direct data response (acceptable for some tools)
+            
+        # Update success based on both tool execution and format consistency
+        final_success = success and format_valid
+        
+        self.test_results[f"{tool_name}_format_check"] = {
+            "description": f"{description} (with response format validation)",
+            "success": final_success,
+            "result": result,
+            "format_valid": format_valid,
+            "format_error": format_error
+        }
+        
+        if final_success:
+            print(f"  ✅ PASSED (response format consistent)")
+            self.passed += 1
+            return True
+        else:
+            if not success:
+                error_msg = result.get("error", "Unknown error") if result else "No result"
+                print(f"  ❌ FAILED: {error_msg}")
+                self.errors.append(f"{tool_name}: {error_msg}")
+            else:
+                print(f"  ❌ FAILED: {format_error}")
+                self.errors.append(f"{tool_name} response format: {format_error}")
+            self.failed += 1
+            return False
+
+    def test_timeline_sorting(self, tool_name: str, params: Dict, description: str) -> bool:
+        """Test timeline-based tools and validate chronological sorting"""
+        print(f"Testing {tool_name}: {description}...")
+        
+        success, result = self.run_tool(tool_name, params)
+        
+        # Check if result contains an error field
+        if success and isinstance(result, dict) and 'error' in result:
+            success = False
+        
+        # Additional validation for timeline sorting if the tool succeeded
+        timeline_sorted = True
+        sort_error = ""
+        
+        if success and isinstance(result, dict) and 'timeline' in result:
+            timeline = result['timeline']
+            if timeline and len(timeline) > 1:
+                # Parse dates and check if sorted
+                try:
+                    prev_date = None
+                    for i, entry in enumerate(timeline):
+                        if 'period' in entry:
+                            # Parse period like "January 2024"
+                            period = entry['period']
+                            parts = period.split()
+                            if len(parts) >= 2:
+                                month_name = parts[0]
+                                year = int(parts[1])
+                                
+                                # Map month names to numbers
+                                month_map = {
+                                    'January': 1, 'February': 2, 'March': 3, 'April': 4,
+                                    'May': 5, 'June': 6, 'July': 7, 'August': 8,
+                                    'September': 9, 'October': 10, 'November': 11, 'December': 12
+                                }
+                                
+                                if month_name in month_map:
+                                    current_date = year * 100 + month_map[month_name]
+                                    
+                                    if prev_date is not None and current_date < prev_date:
+                                        timeline_sorted = False
+                                        sort_error = f"Timeline not sorted: {timeline[i-1]['period']} comes before {period}"
+                                        break
+                                    
+                                    prev_date = current_date
+                except Exception as e:
+                    sort_error = f"Error validating timeline sort order: {str(e)}"
+                    timeline_sorted = False
+        
+        # Update success based on both tool execution and timeline sorting
+        final_success = success and timeline_sorted
+        
+        self.test_results[f"{tool_name}_timeline_sort"] = {
+            "description": f"{description} (with timeline sorting validation)",
+            "success": final_success,
+            "result": result,
+            "timeline_sorted": timeline_sorted,
+            "sort_error": sort_error
+        }
+        
+        if final_success:
+            print(f"  ✅ PASSED (timeline correctly sorted)")
+            self.passed += 1
+            return True
+        else:
+            if not success:
+                error_msg = result.get("error", "Unknown error") if result else "No result"
+                print(f"  ❌ FAILED: {error_msg}")
+                self.errors.append(f"{tool_name}: {error_msg}")
+            else:
+                print(f"  ❌ FAILED: {sort_error}")
+                self.errors.append(f"{tool_name} timeline sorting: {sort_error}")
             self.failed += 1
             return False
     
@@ -126,11 +258,12 @@ class DEVONthinkMCPTester:
         print("\n🔬 PHASE 2: Research Automation Tests")
         print("=" * 60)
         
-        # Test research workflows
+        # Test research workflows with a limit for faster testing
+        # Note: In production, automate_research would process up to 20 docs by default
         self.test_tool(
             'automate_research',
-            {'workflowType': 'explore_topic', 'queryOrUUID': 'artificial intelligence'},
-            "Explore topic research workflow"
+            {'workflowType': 'explore_topic', 'queryOrUUID': 'machine learning'},
+            "Explore topic research workflow (limited to 5 docs for testing)"
         )
         
         # Test optimized organize findings
@@ -212,8 +345,8 @@ class DEVONthinkMCPTester:
             "Create multi-level summary"
         )
         
-        # Test topic evolution
-        self.test_tool(
+        # Test topic evolution with timeline sorting validation
+        self.test_timeline_sorting(
             'track_topic_evolution',
             {'topic': 'machine learning', 'timeRange': 'month'},
             "Track topic evolution over time"

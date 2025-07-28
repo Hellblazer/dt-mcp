@@ -107,10 +107,20 @@ export const validators = {
   },
   
   validateNonEmptyArray: (array, paramName) => {
+    // Use this validator only for operations that require at least one element
+    // For operations that can handle empty arrays gracefully (like batch_search),
+    // implement custom validation instead
     if (!Array.isArray(array) || array.length === 0) {
       throw errorHandlers.invalidParameter(paramName, array, 'non-empty array');
     }
     return array;
+  },
+  
+  validateNonEmptyString: (str, paramName) => {
+    if (typeof str !== 'string' || str.trim() === '') {
+      throw errorHandlers.invalidParameter(paramName, str, 'non-empty string');
+    }
+    return str.trim();
   }
 };
 
