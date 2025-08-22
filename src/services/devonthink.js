@@ -595,4 +595,261 @@ export class DEVONthinkService {
       }
     };
   }
+
+  // ===== PHASE 1 TOOLS: Critical Infrastructure =====
+
+  /**
+   * Import URL - Download and import content from URLs with security validation
+   * @param {string} url - URL to import
+   * @param {string} [targetGroup] - Target group path
+   * @param {boolean} [extractMetadata] - Whether to extract document metadata
+   * @param {string[]} [tags] - Tags to apply to imported document
+   * @param {string} [database] - Target database name
+   * @returns {Promise<Object>} Import result with document UUID and metadata
+   */
+  async importUrl(url, targetGroup = null, extractMetadata = false, tags = null, database = null) {
+    try {
+      // Validate parameters
+      validators.validateNonEmptyString(url, 'url');
+      
+      // Security validation - check for dangerous protocols
+      const blockedProtocols = ['javascript:', 'data:', 'file:', 'ftp:', 'chrome:', 'about:'];
+      const urlLower = url.toLowerCase();
+      
+      for (const protocol of blockedProtocols) {
+        if (urlLower.startsWith(protocol)) {
+          throw createError(ErrorTypes.VALIDATION_ERROR, `Blocked protocol: ${protocol}`);
+        }
+      }
+      
+      // Basic URL format validation
+      if (!url.match(/^https?:\/\/.+/)) {
+        throw createError(ErrorTypes.VALIDATION_ERROR, 'Invalid URL format - must start with http:// or https://');
+      }
+      
+      // Check for suspicious patterns
+      const suspiciousPatterns = ['<script', 'javascript', 'vbscript', 'onload=', 'onerror='];
+      for (const pattern of suspiciousPatterns) {
+        if (url.toLowerCase().includes(pattern)) {
+          throw createError(ErrorTypes.VALIDATION_ERROR, 'Suspicious URL content detected');
+        }
+      }
+
+      // Build parameters object
+      const params = {
+        url,
+        targetGroup: targetGroup || '',
+        extractMetadata: extractMetadata || false,
+        tags: tags ? JSON.stringify(tags) : '',
+        database: database || ''
+      };
+
+      // Execute import with timeout
+      const result = await withTimeout(
+        this.runAppleScript('import_url', [url, JSON.stringify(params)]),
+        30000, // 30 second timeout for network operations
+        'URL import operation timed out'
+      );
+
+      // Validate result
+      if (result.error) {
+        throw createError(ErrorTypes.OPERATION_ERROR, result.error);
+      }
+
+      if (!result.success || !result.uuid) {
+        throw createError(ErrorTypes.OPERATION_ERROR, 'Import failed - no document UUID returned');
+      }
+
+      return createSuccessResponse('URL imported successfully', {
+        uuid: result.uuid,
+        name: result.name,
+        path: result.path,
+        metadata: result.metadata || null,
+        importedFrom: url,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      if (error.error) throw error; // Re-throw formatted errors
+      throw createError(ErrorTypes.OPERATION_ERROR, `Import URL failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create Group - Create hierarchical folder structure
+   * @param {string} name - Group name
+   * @param {string} [parentGroup] - Parent group path
+   * @param {string} [description] - Group description
+   * @param {string[]} [tags] - Tags to apply to group
+   * @param {string} [database] - Target database name
+   * @returns {Promise<Object>} Created group with UUID and path
+   */
+  async createGroup(name, parentGroup = null, description = null, tags = null, database = null) {
+    try {
+      // Validate parameters
+      validators.validateNonEmptyString(name, 'name');
+      
+      if (!name.trim()) {
+        throw createError(ErrorTypes.VALIDATION_ERROR, 'Group name cannot be empty');
+      }
+
+      // Build parameters
+      const params = {
+        name: name.trim(),
+        parentGroup: parentGroup || '',
+        description: description || '',
+        tags: tags ? JSON.stringify(tags) : '',
+        database: database || ''
+      };
+
+      const result = await this.runAppleScript('create_group', [name, JSON.stringify(params)]);
+
+      if (result.error) {
+        throw createError(ErrorTypes.OPERATION_ERROR, result.error);
+      }
+
+      if (!result.success || !result.uuid) {
+        throw createError(ErrorTypes.OPERATION_ERROR, 'Group creation failed - no UUID returned');
+      }
+
+      return createSuccessResponse('Group created successfully', {
+        uuid: result.uuid,
+        name: result.name,
+        path: result.path,
+        description: description,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      if (error.error) throw error;
+      throw createError(ErrorTypes.OPERATION_ERROR, `Create group failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Move to Group - Move documents to target group
+   * @param {string|string[]} documentUuids - Document UUID(s) to move
+   * @param {string} targetGroup - Target group path
+   * @param {string} [database] - Target database name
+   * @returns {Promise<Object>} Move operation result
+   */
+  async moveToGroup(documentUuids, targetGroup, database = null) {
+    try {
+      // Validate parameters
+      validators.validateNonEmptyString(targetGroup, 'targetGroup');
+      
+      if (!documentUuids) {
+        throw createError(ErrorTypes.VALIDATION_ERROR, 'Document UUIDs are required');
+      }
+
+      // Normalize to array
+      const uuids = Array.isArray(documentUuids) ? documentUuids : [documentUuids];
+      
+      if (uuids.length === 0) {
+        throw createError(ErrorTypes.VALIDATION_ERROR, 'At least one document UUID is required');
+      }
+
+      // Validate UUIDs
+      for (const uuid of uuids) {
+        if (!uuid || typeof uuid !== 'string' || !uuid.trim()) {
+          throw createError(ErrorTypes.VALIDATION_ERROR, 'Invalid document UUID provided');
+        }
+      }
+
+      const params = {
+        documentUuids: uuids,
+        targetGroup,
+        database: database || ''
+      };
+
+      const result = await this.runAppleScript('move_to_group', [JSON.stringify(params)]);
+
+      if (result.error) {
+        throw createError(ErrorTypes.OPERATION_ERROR, result.error);
+      }
+
+      if (!result.success) {
+        throw createError(ErrorTypes.OPERATION_ERROR, 'Move operation failed');
+      }
+
+      return createSuccessResponse('Documents moved successfully', {
+        movedDocuments: result.movedDocuments || uuids.length,
+        targetGroup,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      if (error.error) throw error;
+      throw createError(ErrorTypes.OPERATION_ERROR, `Move to group failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Download Paper - Download academic papers from various sources
+   * @param {string} source - Source type (arxiv, doi, pubmed)
+   * @param {string} identifier - Paper identifier
+   * @param {string} [targetGroup] - Target group path
+   * @param {boolean} [extractMetadata] - Whether to extract document metadata
+   * @param {string[]} [tags] - Tags to apply to downloaded document
+   * @param {string} [database] - Target database name
+   * @returns {Promise<Object>} Download result with document UUID and metadata
+   */
+  async downloadPaper(source, identifier, targetGroup = null, extractMetadata = false, tags = null, database = null) {
+    try {
+      // Validate parameters
+      validators.validateNonEmptyString(source, 'source');
+      validators.validateNonEmptyString(identifier, 'identifier');
+      
+      // Validate source type
+      const validSources = ['arxiv', 'doi', 'pubmed'];
+      if (!validSources.includes(source.toLowerCase())) {
+        throw createError(ErrorTypes.VALIDATION_ERROR, `Invalid source type: ${source}. Valid sources: ${validSources.join(', ')}`);
+      }
+
+      // Basic identifier validation
+      if (!identifier.trim()) {
+        throw createError(ErrorTypes.VALIDATION_ERROR, 'Identifier cannot be empty');
+      }
+
+      // Build parameters object
+      const params = {
+        source: source.toLowerCase(),
+        identifier: identifier.trim(),
+        targetGroup: targetGroup || '',
+        extractMetadata: extractMetadata || false,
+        tags: tags ? JSON.stringify(tags) : '',
+        database: database || ''
+      };
+
+      // Execute download with extended timeout for network operations
+      const result = await withTimeout(
+        this.runAppleScript('download_paper', [source.toLowerCase(), JSON.stringify(params)]),
+        60000, // 60 second timeout for paper downloads
+        'Paper download operation timed out'
+      );
+
+      // Validate result
+      if (result.error) {
+        throw createError(ErrorTypes.OPERATION_ERROR, result.error);
+      }
+
+      if (!result.success || !result.uuid) {
+        throw createError(ErrorTypes.OPERATION_ERROR, 'Download failed - no document UUID returned');
+      }
+
+      return createSuccessResponse('Paper downloaded successfully', {
+        uuid: result.uuid,
+        name: result.name,
+        path: result.path,
+        source: result.source,
+        identifier: result.identifier,
+        metadata: result.metadata || null,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      if (error.error) throw error; // Re-throw formatted errors
+      throw createError(ErrorTypes.OPERATION_ERROR, `Download paper failed: ${error.message}`);
+    }
+  }
 }

@@ -147,6 +147,23 @@ async function main() {
         result = await devonthink.listSmartGroups(params.database, params.limit, params.offset);
         break;
         
+      // Phase 1 tools
+      case 'import_url':
+        result = await devonthink.importUrl(params.url, params.targetGroup, params.extractMetadata, params.tags, params.database);
+        break;
+        
+      case 'create_group':
+        result = await devonthink.createGroup(params.name, params.parentGroup, params.description, params.tags, params.database);
+        break;
+        
+      case 'move_to_group':
+        result = await devonthink.moveToGroup(params.documentUuids, params.targetGroup, params.database);
+        break;
+        
+      case 'download_paper':
+        result = await devonthink.downloadPaper(params.source, params.identifier, params.targetGroup, params.extractMetadata, params.tags, params.database);
+        break;
+        
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }

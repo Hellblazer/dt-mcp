@@ -829,6 +829,95 @@ async function main() {
         };
       }
     );
+
+    // Phase 1 Infrastructure Tools - Critical Research Automation Capabilities
+    server.tool(
+      'import_url',
+      'Import a URL into DEVONthink with security validation and metadata extraction',
+      {
+        url: z.string().url().describe('URL to import (must be valid HTTP/HTTPS)'),
+        targetGroup: z.string().optional().describe('Target group path (optional)'),
+        extractMetadata: z.boolean().optional().default(false).describe('Extract metadata from imported content'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to imported document')
+      },
+      async ({ url, targetGroup, extractMetadata = false, tags = [] }) => {
+        logger.info(`Importing URL: ${url} to group: ${targetGroup || 'default'}`);
+        try {
+          const result = await devonthink.importUrl(url, targetGroup, extractMetadata, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'import_url');
+        }
+      }
+    );
+
+    server.tool(
+      'create_group',
+      'Create hierarchical groups/folders in DEVONthink for project organization',
+      {
+        name: z.string().min(1).describe('Group name (required, non-empty)'),
+        parentGroup: z.string().optional().describe('Parent group path (optional)'),
+        description: z.string().optional().describe('Group description'),
+        tags: z.array(z.string()).optional().describe('Tags for the group')
+      },
+      async ({ name, parentGroup, description, tags = [] }) => {
+        logger.info(`Creating group: ${name} under parent: ${parentGroup || 'root'}`);
+        try {
+          const result = await devonthink.createGroup(name, parentGroup, description, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'create_group');
+        }
+      }
+    );
+
+    server.tool(
+      'download_paper',
+      'Download academic papers from arXiv, DOI, or PubMed with automatic metadata extraction',
+      {
+        source: z.enum(['arxiv', 'doi', 'pubmed']).describe('Academic source type'),
+        identifier: z.string().min(1).describe('Paper identifier (arXiv ID, DOI, or PubMed ID)'),
+        targetGroup: z.string().optional().describe('Target group for downloaded paper'),
+        extractMetadata: z.boolean().optional().default(true).describe('Extract paper metadata'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to downloaded paper')
+      },
+      async ({ source, identifier, targetGroup, extractMetadata = true, tags = [] }) => {
+        logger.info(`Downloading ${source} paper: ${identifier} to group: ${targetGroup || 'default'}`);
+        try {
+          const result = await devonthink.downloadPaper(source, identifier, targetGroup, extractMetadata, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'download_paper');
+        }
+      }
+    );
+
+    server.tool(
+      'move_to_group',
+      'Move documents to different groups with batch support and failure tracking',
+      {
+        documentUuids: z.union([z.string(), z.array(z.string())]).describe('Document UUID(s) to move'),
+        targetGroup: z.string().min(1).describe('Target group path (required)')
+      },
+      async ({ documentUuids, targetGroup }) => {
+        const uuids = Array.isArray(documentUuids) ? documentUuids : [documentUuids];
+        logger.info(`Moving ${uuids.length} documents to group: ${targetGroup}`);
+        try {
+          const result = await devonthink.moveToGroup(uuids, targetGroup);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'move_to_group');
+        }
+      }
+    );
     
     // Register system prompts for AI clients
     server.prompt(
