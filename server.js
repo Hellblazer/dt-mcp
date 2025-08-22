@@ -7,7 +7,7 @@ import path from 'path';
 import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
-import { systemPrompt, contextPrompts } from './src/system-prompt.js';
+// System prompt functionality removed during cleanup
 import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -918,63 +918,96 @@ async function main() {
         }
       }
     );
-    
-    // Register system prompts for AI clients
-    server.prompt(
-      'devonthink_guide',
-      'Comprehensive guide for using DEVONthink MCP tools effectively',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: systemPrompt
-          }]
-        };
+
+    server.tool(
+      'create_folder_structure',
+      'Create nested folder hierarchies with batch support and conflict handling',
+      {
+        structure: z.record(z.any()).describe('Nested object representing folder structure (use null for leaf folders)'),
+        rootGroup: z.string().optional().describe('Root group path for the structure'),
+        database: z.string().optional().describe('Target database name'),
+        overwriteExisting: z.boolean().optional().default(false).describe('Whether to update existing groups')
+      },
+      async ({ structure, rootGroup, database, overwriteExisting }) => {
+        logger.info(`Creating folder structure with ${Object.keys(structure).length} top-level folders`);
+        try {
+          const result = await devonthink.createFolderStructure(structure, rootGroup, database, overwriteExisting);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'create_folder_structure');
+        }
+      }
+    );
+
+    server.tool(
+      'bulk_tag',
+      'Apply tag operations to multiple documents efficiently',
+      {
+        documentUuids: z.array(z.string()).describe('Array of document UUIDs to process'),
+        action: z.enum(['add', 'remove', 'replace']).describe('Tag action to perform'),
+        tags: z.array(z.string()).describe('Array of tags to apply')
+      },
+      async ({ documentUuids, action, tags }) => {
+        try {
+          const result = await devonthink.bulkTag(documentUuids, action, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'bulk_tag');
+        }
+      }
+    );
+
+    server.tool(
+      'batch_import',
+      'Process multiple import sources concurrently with progress tracking',
+      {
+        sources: z.array(z.object({
+          type: z.enum(['url', 'file', 'paper']).describe('Import source type'),
+          source: z.string().describe('Source identifier (URL, file path, or paper ID)'),
+          targetGroup: z.string().describe('Target group for imported content'),
+          tags: z.array(z.string()).optional().describe('Tags to apply to imported document'),
+          metadata: z.any().optional().describe('Additional metadata for the import')
+        })).describe('Array of import sources to process'),
+        database: z.string().optional().describe('Target database name'),
+        progressCallback: z.boolean().optional().default(false).describe('Whether to provide progress updates')
+      },
+      async ({ sources, database, progressCallback = false }) => {
+        try {
+          const result = await devonthink.batchImport(sources, database, progressCallback);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'batch_import');
+        }
+      }
+    );
+
+    server.tool(
+      'auto_organize_by_type',
+      'Automatically organize documents by type with smart categorization and folder creation',
+      {
+        sourceGroupUuid: z.string().optional().default('').describe('Source group UUID to organize (empty for current selection or all documents)'),
+        organizationMode: z.enum(['type', 'date', 'size', 'content']).optional().default('type').describe('Organization mode: type (by file extension), date (by creation date), size (by file size), or content (by document type)'),
+        createSubfolders: z.boolean().optional().default(true).describe('Whether to create subfolders for organization categories')
+      },
+      async ({ sourceGroupUuid = '', organizationMode = 'type', createSubfolders = true }) => {
+        try {
+          const result = await devonthink.autoOrganizeByType(sourceGroupUuid, organizationMode, createSubfolders);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'auto_organize_by_type');
+        }
       }
     );
     
-    server.prompt(
-      'research_workflow',
-      'Best practices for research workflows with DEVONthink',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: contextPrompts.research
-          }]
-        };
-      }
-    );
-    
-    server.prompt(
-      'analysis_workflow',
-      'Guide for document analysis tasks',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: contextPrompts.analysis
-          }]
-        };
-      }
-    );
-    
-    server.prompt(
-      'organization_workflow',
-      'Tips for organizing knowledge in DEVONthink',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: contextPrompts.organization
-          }]
-        };
-      }
-    );
+    // System prompts removed during cleanup
     
     // Use STDIO transport
     const transport = new StdioServerTransport();
