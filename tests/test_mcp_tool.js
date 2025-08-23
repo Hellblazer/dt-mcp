@@ -1,167 +1,187 @@
 #!/usr/bin/env node
 
-// Comprehensive test harness for all MCP tools
-import { DEVONthinkService } from '../src/services/devonthink.js';
+/**
+ * Individual MCP tool testing utility
+ * Usage: node test_mcp_tool.js <tool_name> [parameters_json]
+ */
+
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const colors = {
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  blue: '\x1b[34m',
+  yellow: '\x1b[33m',
+  reset: '\x1b[0m'
+};
+
+function log(color, message) {
+  console.log(`${color}${message}${colors.reset}`);
+}
+
+async function testTool(toolName, parameters = null) {
+  return new Promise((resolve, reject) => {
+    const serverPath = path.join(__dirname, '..', 'server.js');
+    
+    // Start the MCP server
+    const serverProcess = spawn('node', [serverPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, LOG_LEVEL: 'ERROR' } // Minimal logging for testing
+    });
+    
+    let responseData = '';
+    let errorData = '';
+    let testComplete = false;
+    
+    const timeout = setTimeout(() => {
+      if (!testComplete) {
+        serverProcess.kill('SIGKILL');
+        reject(new Error('Test timeout'));
+      }
+    }, 15000);
+    
+    serverProcess.stdout.on('data', (data) => {
+      responseData += data.toString();
+    });
+    
+    serverProcess.stderr.on('data', (data) => {
+      errorData += data.toString();
+      
+      // Look for server ready message
+      if (data.toString().includes('DEVONthink MCP server started')) {
+        // Server is ready, send tool request
+        const request = {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: {
+            name: toolName,
+            arguments: parameters || {}
+          }
+        };
+        
+        serverProcess.stdin.write(JSON.stringify(request) + '\n');
+      }
+    });
+    
+    serverProcess.stdout.on('data', (data) => {
+      try {
+        const lines = data.toString().split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          try {
+            const response = JSON.parse(line);
+            
+            if (response.id === 1) {
+              testComplete = true;
+              clearTimeout(timeout);
+              serverProcess.kill('SIGTERM');
+              
+              if (response.error) {
+                resolve({
+                  success: false,
+                  error: response.error.message || 'Tool error',
+                  data: response.error
+                });
+              } else {
+                resolve({
+                  success: true,
+                  data: response.result,
+                  output: responseData
+                });
+              }
+              return;
+            }
+          } catch (parseError) {
+            // Ignore non-JSON lines (server startup messages)
+          }
+        }
+      } catch (error) {
+        // Continue processing
+      }
+    });
+    
+    serverProcess.on('error', (error) => {
+      clearTimeout(timeout);
+      reject(new Error(`Server error: ${error.message}`));
+    });
+    
+    serverProcess.on('exit', (code) => {
+      clearTimeout(timeout);
+      if (!testComplete) {
+        reject(new Error(`Server exited with code ${code}\nError: ${errorData}`));
+      }
+    });
+  });
+}
 
 async function main() {
-  if (process.argv.length < 4) {
-    console.error('Usage: node test_mcp_tool.js <tool_name> <params_json>');
+  const args = process.argv.slice(2);
+  
+  if (args.length === 0) {
+    log(colors.red, 'Usage: node test_mcp_tool.js <tool_name> [parameters_json]');
     process.exit(1);
   }
-
-  const toolName = process.argv[2];
-  const params = JSON.parse(process.argv[3]);
   
-  const devonthink = new DEVONthinkService();
+  const toolName = args[0];
+  let parameters = null;
+  
+  if (args.length > 1) {
+    try {
+      parameters = JSON.parse(args[1]);
+    } catch (error) {
+      log(colors.red, `Invalid JSON parameters: ${error.message}`);
+      process.exit(1);
+    }
+  }
+  
+  log(colors.blue, `Testing tool: ${toolName}`);
+  if (parameters) {
+    log(colors.blue, `Parameters: ${JSON.stringify(parameters, null, 2)}`);
+  }
   
   try {
-    let result;
+    const result = await testTool(toolName, parameters);
     
-    switch (toolName) {
-      // Core operations
-      case 'search_devonthink':
-        result = await devonthink.search(params.query, params.database);
-        break;
-      
-      case 'read_document':
-        result = await devonthink.readDocument(params.uuid, params.includeContent);
-        break;
-        
-      case 'create_document':
-        result = await devonthink.createDocument(params.name, params.content, params.type, params.groupPath, params.database, params.tags);
-        break;
-        
-      case 'list_databases':
-        result = await devonthink.listDatabases();
-        break;
-        
-      case 'update_tags':
-        result = await devonthink.updateTags(params.uuid, params.tags);
-        break;
-        
-      case 'get_related_documents':
-        result = await devonthink.getRelatedDocuments(params.uuid, params.limit);
-        break;
-        
-      case 'create_smart_group':
-        result = await devonthink.createSmartGroup(params.name, params.searchQuery, params.database);
-        break;
-        
-      case 'ocr_document':
-        result = await devonthink.ocrDocument(params.uuid);
-        break;
-      
-      case 'batch_search':
-        result = await devonthink.batchSearch(params.queries, params.database);
-        break;
-      
-      // Knowledge graph tools (Phase 1)
-      case 'build_knowledge_graph':
-        result = await devonthink.buildKnowledgeGraph(params.uuid, params.maxDepth);
-        break;
-        
-      case 'find_shortest_path':
-        result = await devonthink.findShortestPath(params.fromUuid, params.toUuid);
-        break;
-        
-      case 'detect_knowledge_clusters':
-        result = await devonthink.detectKnowledgeClusters(params.searchQuery, params.maxDocuments, params.minClusterSize);
-        break;
-        
-      case 'find_connections':
-        result = await devonthink.findConnections(params.uuid1, params.uuid2, params.maxDepth);
-        break;
-        
-      case 'compare_documents':
-        result = await devonthink.compareDocuments(params.uuid1, params.uuid2);
-        break;
-      
-      // Research automation (Phase 2)
-      case 'automate_research':
-        result = await devonthink.automateResearch(params.workflowType, params.queryOrUUID);
-        break;
-        
-      case 'organize_findings':
-        result = await devonthink.automateResearchOptimized(params.searchQuery, params.maxResults);
-        break;
-        
-      case 'create_collection':
-        result = await devonthink.createCollection(params.name, params.description || '', params.database);
-        break;
-        
-      case 'add_to_collection':
-        result = await devonthink.addToCollection(params.collectionUuid, params.documentUuids);
-        break;
-      
-      // Document intelligence (Phase 3)
-      case 'analyze_document':
-        result = await devonthink.analyzeDocument(params.uuid);
-        break;
-        
-      case 'analyze_document_similarity':
-        result = await devonthink.analyzeDocumentSimilarity(params.uuids);
-        break;
-        
-      case 'batch_read_documents':
-        result = await devonthink.batchReadDocuments(params.uuids, params.includeContent);
-        break;
-      
-      // Knowledge synthesis (Phase 4)
-      case 'synthesize_documents':
-        result = await devonthink.synthesizeDocuments(params.documentUUIDs, params.synthesisType);
-        break;
-        
-      case 'extract_themes':
-        result = await devonthink.extractThemes(params.documentUUIDs);
-        break;
-        
-      case 'classify_document':
-        result = await devonthink.classifyDocument(params.uuid);
-        break;
-        
-      case 'get_similar_documents':
-        result = await devonthink.getSimilarDocuments(params.uuid, params.limit);
-        break;
-        
-      case 'identify_trends':
-        result = await devonthink.identifyTrends(params.databaseName);
-        break;
-        
-      case 'create_multi_level_summary':
-        result = await devonthink.createMultiLevelSummary(params.documentUUIDs, params.summaryLevel);
-        break;
-        
-      case 'track_topic_evolution':
-        result = await devonthink.trackTopicEvolution(params.topic, params.timeRange);
-        break;
-        
-      case 'create_knowledge_timeline':
-        result = await devonthink.createKnowledgeTimeline(params.documentUUIDs);
-        break;
-        
-      case 'advanced_search':
-        result = await devonthink.advancedSearch(params.query, params.database, params.searchIn, params.maxResults, params.sortBy, params.searchScope);
-        break;
-        
-      case 'list_smart_groups':
-        result = await devonthink.listSmartGroups(params.database, params.limit, params.offset);
-        break;
-        
-      default:
-        throw new Error(`Unknown tool: ${toolName}`);
+    if (result.success) {
+      log(colors.green, `✅ ${toolName} - SUCCESS`);
+      if (result.data) {
+        console.log(JSON.stringify(result.data, null, 2));
+      }
+      process.exit(0);
+    } else {
+      log(colors.red, `❌ ${toolName} - FAILED`);
+      log(colors.red, `Error: ${result.error}`);
+      if (result.data) {
+        console.log(JSON.stringify(result.data, null, 2));
+      }
+      process.exit(1);
     }
     
-    // Check if result contains an error and exit with error code if so
-    if (result && typeof result === 'object' && 'error' in result) {
-      console.log(JSON.stringify(result, null, 2));
-      process.exit(1); // Exit with error code for tool errors
-    }
-    
-    console.log(JSON.stringify(result, null, 2));
   } catch (error) {
-    console.error(JSON.stringify({ error: error.message }));
+    log(colors.red, `❌ ${toolName} - ERROR`);
+    log(colors.red, `Error: ${error.message}`);
     process.exit(1);
   }
 }
 
-main();
+// Handle cleanup
+process.on('SIGINT', () => {
+  console.log('\nTest interrupted');
+  process.exit(1);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\nTest terminated');
+  process.exit(1);
+});
+
+main().catch(error => {
+  log(colors.red, `Fatal error: ${error.message}`);
+  process.exit(1);
+});

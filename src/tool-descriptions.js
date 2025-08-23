@@ -586,6 +586,623 @@ export const toolDescriptions = {
     }
   },
 
+  // Phase 4: Advanced Research Automation (6 new tools)
+  import_url: {
+    brief: 'Import content from a single URL into DEVONthink',
+    detailed: `Import web content from a URL with automatic content extraction and metadata.
+    
+    WHEN TO USE:
+    - Adding web articles to research collection
+    - Importing single web pages or PDFs
+    - Building reference collections from online sources
+    
+    FEATURES:
+    - Automatic content extraction and cleaning
+    - Metadata preservation (title, author, date)
+    - PDF and web page support
+    - Automatic tagging and organization
+    
+    COMMON PATTERNS:
+    - Article: {"url": "https://example.com/article", "targetGroup": "/Research/Articles"}
+    - PDF: {"url": "https://arxiv.org/pdf/2301.00001.pdf", "tags": ["arxiv", "research"]}
+    
+    RETURNS: Imported document object with metadata
+    ERRORS: URL not accessible, import failed, invalid URL format`,
+    
+    parameterHelp: {
+      url: 'URL to import (web page or PDF)',
+      targetGroup: 'Optional group path for organization',
+      tags: 'Optional array of tags to apply'
+    }
+  },
+
+  create_group: {
+    brief: 'Create a new group (folder) in DEVONthink',
+    detailed: `Create organizational groups for document management.
+    
+    WHEN TO USE:
+    - Setting up research project structure
+    - Creating topic-based folders
+    - Organizing imported content
+    
+    FEATURES:
+    - Hierarchical group creation
+    - Automatic parent creation if needed
+    - Cross-database group creation
+    
+    COMMON PATTERNS:
+    - Project folder: {"name": "AI Safety Research", "database": "Research"}
+    - Nested structure: {"name": "Deep Learning/Papers/2024", "database": "Archive"}
+    
+    RETURNS: Created group object with path and metadata
+    ERRORS: Database not found, invalid group name`,
+    
+    parameterHelp: {
+      name: 'Group name or path (supports nested: "Parent/Child")',
+      database: 'Target database name (optional)',
+      description: 'Optional group description'
+    }
+  },
+
+  download_paper: {
+    brief: 'Download academic paper with metadata extraction',
+    detailed: `Download academic papers from various sources with automatic metadata extraction.
+    
+    WHEN TO USE:
+    - Building research paper collections
+    - Downloading from arXiv, PubMed, academic sites
+    - Automated literature collection
+    
+    SUPPORTED SOURCES:
+    - arXiv (arxiv.org)
+    - PubMed/PMC
+    - IEEE Xplore
+    - ACM Digital Library
+    - Direct PDF URLs
+    
+    METADATA EXTRACTION:
+    - Title, authors, abstract
+    - Publication date and venue
+    - DOI and citation information
+    - Automatic tagging by source
+    
+    COMMON PATTERNS:
+    - arXiv: {"source": "arxiv", "identifier": "2301.00001"}
+    - DOI: {"source": "doi", "identifier": "10.1000/182"}
+    - Direct: {"source": "url", "identifier": "https://example.com/paper.pdf"}
+    
+    RETURNS: Downloaded paper with extracted metadata
+    ERRORS: Paper not found, download failed, unsupported source`,
+    
+    parameterHelp: {
+      source: 'Paper source: "arxiv", "pubmed", "doi", "url"',
+      identifier: 'Paper identifier (arXiv ID, DOI, URL, etc.)',
+      targetGroup: 'Optional group for organization'
+    }
+  },
+
+  move_to_group: {
+    brief: 'Move document to a different group in DEVONthink',
+    detailed: `Move documents between groups for better organization.
+    
+    WHEN TO USE:
+    - Reorganizing research collections
+    - Moving documents after review
+    - Batch organization operations
+    
+    FEATURES:
+    - Cross-database moves
+    - Automatic group creation if needed
+    - Preserves document metadata and relationships
+    
+    COMMON PATTERNS:
+    - Simple move: {"uuid": "...", "targetGroup": "/Research/Completed"}
+    - Cross-database: {"uuid": "...", "targetGroup": "/Archive/Old Projects", "database": "Archive"}
+    
+    RETURNS: Updated document location
+    ERRORS: Document not found, target group invalid`,
+    
+    parameterHelp: {
+      uuid: 'Document UUID to move',
+      targetGroup: 'Target group path',
+      database: 'Optional target database name'
+    }
+  },
+
+  create_folder_structure: {
+    brief: 'Create comprehensive folder structure for research projects',
+    detailed: `Create complete folder hierarchies for organized research projects.
+    
+    WHEN TO USE:
+    - Setting up new research projects
+    - Standardizing project organization
+    - Creating template structures
+    
+    TYPICAL STRUCTURES CREATED:
+    - Research Projects: Papers/, Notes/, Data/, Analysis/, Reports/
+    - Literature Reviews: Sources/, Summaries/, Themes/, Timeline/
+    - Data Projects: Raw/, Processed/, Analysis/, Visualizations/
+    
+    FEATURES:
+    - Multiple predefined templates
+    - Custom structure creation
+    - Automatic README file creation
+    - Template-based setup
+    
+    COMMON PATTERNS:
+    - Research project: {"projectName": "Quantum Computing Study", "template": "research"}
+    - Custom structure: {"projectName": "Custom", "folders": ["Folder1", "Folder2/Sub1"]}
+    
+    RETURNS: Created folder structure with paths
+    ERRORS: Invalid template, database error`,
+    
+    parameterHelp: {
+      projectName: 'Project name (will be root folder)',
+      template: 'Structure template: "research", "literature_review", "data_analysis", "custom"',
+      folders: 'Custom folder array (when template="custom")',
+      database: 'Target database (optional)'
+    }
+  },
+
+  bulk_tag: {
+    brief: 'Apply tags to multiple documents in bulk',
+    detailed: `Efficiently apply tags to multiple documents for organization.
+    
+    WHEN TO USE:
+    - Batch organization of imported documents
+    - Applying research project tags
+    - Categorizing document collections
+    
+    TAGGING OPTIONS:
+    - Add to existing tags
+    - Replace all tags
+    - Remove specific tags
+    - Apply conditional tags based on content
+    
+    COMMON PATTERNS:
+    - Project tagging: {"uuids": [...], "tags": ["project-name", "research"], "mode": "add"}
+    - Recategorization: {"uuids": [...], "tags": ["new-category"], "mode": "replace"}
+    
+    RETURNS: Summary of tagging operations
+    ERRORS: Documents not found, invalid tag format`,
+    
+    parameterHelp: {
+      uuids: 'Array of document UUIDs to tag',
+      tags: 'Array of tags to apply',
+      mode: 'Tagging mode: "add", "replace", "remove"'
+    }
+  },
+
+  batch_import: {
+    brief: 'Import multiple items (URLs, files) in batch with progress tracking',
+    detailed: `Import multiple items efficiently with progress monitoring and error handling.
+    
+    WHEN TO USE:
+    - Large-scale content import
+    - Building research databases
+    - Migrating content collections
+    
+    SUPPORTED IMPORT TYPES:
+    - URLs (web pages, PDFs)
+    - Local files
+    - Academic papers (arXiv, DOI)
+    - RSS/feed URLs
+    
+    FEATURES:
+    - Concurrent processing
+    - Progress tracking with ETAs
+    - Error recovery and retry
+    - Automatic organization
+    - Duplicate detection
+    
+    BATCH SIZE LIMITS:
+    - URLs: Up to 50 concurrent imports
+    - Files: Up to 100 files per batch
+    - Memory management and throttling
+    
+    COMMON PATTERNS:
+    - URL batch: {"items": [{"type": "url", "source": "https://..."}, ...]}
+    - Mixed batch: {"items": [{"type": "url"}, {"type": "arxiv", "id": "2301.00001"}]}
+    
+    RETURNS: Batch import results with success/failure details
+    ERRORS: Too many items, invalid sources, batch timeout`,
+    
+    parameterHelp: {
+      items: 'Array of import items with type and source',
+      targetGroup: 'Optional group for all imports',
+      maxConcurrent: 'Max concurrent imports (default: 10)'
+    }
+  },
+
+  auto_organize_by_type: {
+    brief: 'Automatically organize documents by type and metadata',
+    detailed: `Intelligently organize documents using DEVONthink AI and metadata analysis.
+    
+    WHEN TO USE:
+    - Cleaning up unorganized document collections
+    - Applying consistent organization schemes
+    - Preparing research databases
+    
+    ORGANIZATION METHODS:
+    - By document type (PDFs, web pages, notes)
+    - By topic using AI classification
+    - By date and metadata
+    - By source and origin
+    
+    AI-POWERED FEATURES:
+    - Topic detection and categorization
+    - Duplicate identification
+    - Content-based grouping
+    - Automatic tag suggestions
+    
+    COMMON PATTERNS:
+    - Type-based: {"uuids": [...], "method": "by_type"}
+    - AI topic-based: {"uuids": [...], "method": "by_topic", "useAI": true}
+    - Date-based: {"uuids": [...], "method": "by_date", "dateField": "created"}
+    
+    RETURNS: Organization summary with document movements
+    ERRORS: Documents not found, organization failed`,
+    
+    parameterHelp: {
+      uuids: 'Array of document UUIDs to organize',
+      method: 'Organization method: "by_type", "by_topic", "by_date", "by_source"',
+      useAI: 'Use DEVONthink AI for smart categorization (default: true)',
+      targetDatabase: 'Optional target database'
+    }
+  },
+
+  // Phase 4: Bulk Operations (3 specialized bulk tools)
+  bulk_import_urls: {
+    brief: 'Import multiple URLs concurrently with progress tracking',
+    detailed: `High-performance URL import system with concurrent processing and real-time progress monitoring.
+    
+    WHEN TO USE:
+    - Importing reading lists and bookmarks
+    - Building research databases from web sources
+    - Batch processing of article collections
+    - Migrating from other systems
+    
+    ADVANCED FEATURES:
+    - Concurrent import processing (configurable concurrency)
+    - Real-time progress tracking with ETAs
+    - Intelligent retry logic for failed imports
+    - Automatic duplicate detection and handling
+    - Content extraction and cleaning
+    - Metadata preservation (title, author, date, source)
+    
+    PERFORMANCE OPTIMIZATIONS:
+    - Queue-based processing with priority levels
+    - Memory management for large batches
+    - Rate limiting to respect server policies
+    - Automatic throttling based on system resources
+    
+    SUPPORTED URL TYPES:
+    - Web articles and blog posts
+    - PDF documents
+    - Academic papers (arXiv, PubMed)
+    - News articles
+    - Documentation pages
+    
+    BATCH PROCESSING LIMITS:
+    - Recommended: 10-50 URLs per batch
+    - Maximum: 100 URLs (may require longer processing)
+    - Optimal concurrency: 5-10 concurrent imports
+    
+    COMMON PATTERNS:
+    - Reading list: {"urls": ["https://article1.com", "https://article2.com"], "targetGroup": "/Research/Reading"}
+    - Research batch: {"urls": [...], "tags": ["research", "2024"], "maxConcurrent": 8}
+    
+    RETURNS: Detailed import results with success/failure statistics, progress metrics, and error details
+    ERRORS: Too many URLs, invalid URLs, network failures, import timeout`,
+    
+    parameterHelp: {
+      urls: 'Array of URLs to import (max 100, recommended 10-50)',
+      targetGroup: 'Optional group path for imported content',
+      tags: 'Optional array of tags to apply to all imports',
+      maxConcurrent: 'Maximum concurrent imports (default: 5, max: 10)',
+      priority: 'Import priority: "low", "normal", "high" (default: "normal")'
+    }
+  },
+
+  bulk_download_papers: {
+    brief: 'Download academic papers in bulk with metadata extraction',
+    detailed: `Specialized system for downloading and organizing academic papers from multiple sources with comprehensive metadata extraction.
+    
+    WHEN TO USE:
+    - Building research paper libraries
+    - Literature review preparation
+    - Academic research database creation
+    - Conference proceeding collection
+    
+    SUPPORTED ACADEMIC SOURCES:
+    - arXiv (arxiv.org) - preprints and papers
+    - PubMed/PMC - medical and life science literature
+    - IEEE Xplore - engineering and computer science
+    - ACM Digital Library - computing research
+    - DOI-based downloads from any publisher
+    - Direct PDF URLs from academic sites
+    
+    METADATA EXTRACTION:
+    - Complete bibliographic information
+    - Author names and affiliations
+    - Abstract and keywords
+    - Publication venue and date
+    - Citation count and metrics
+    - DOI and persistent identifiers
+    - Subject classifications
+    
+    ADVANCED FEATURES:
+    - Concurrent paper downloads with queue management
+    - Progress tracking for long-running operations
+    - Automatic citation network discovery
+    - Related paper suggestions
+    - Duplicate detection across sources
+    - Automatic tagging by field and source
+    - Citation format generation (BibTeX, RIS)
+    
+    BULK PROCESSING:
+    - Process up to 50 papers per batch
+    - Intelligent source prioritization
+    - Retry logic for failed downloads
+    - Bandwidth management and throttling
+    
+    COMMON PATTERNS:
+    - arXiv batch: {"papers": [{"source": "arxiv", "id": "2301.00001"}, {"source": "arxiv", "id": "2301.00002"}]}
+    - DOI collection: {"papers": [{"source": "doi", "id": "10.1000/182"}, {"source": "doi", "id": "10.1000/183"}]}
+    - Mixed sources: {"papers": [{"source": "arxiv", "id": "..."}, {"source": "pubmed", "id": "..."}]}
+    
+    RETURNS: Comprehensive download results with metadata, citation info, and organization details
+    ERRORS: Papers not found, download failures, unsupported sources, metadata extraction errors`,
+    
+    parameterHelp: {
+      papers: 'Array of paper objects with source and identifier',
+      targetGroup: 'Optional group for organizing downloaded papers',
+      extractCitations: 'Extract citation networks (default: true)',
+      autoTag: 'Automatically tag by field and source (default: true)',
+      maxConcurrent: 'Maximum concurrent downloads (default: 3, max: 5)'
+    }
+  },
+
+  create_research_project: {
+    brief: 'Create comprehensive research project structure with initial sources',
+    detailed: `Complete research project setup system that creates organizational structure and populates with initial sources.
+    
+    WHEN TO USE:
+    - Starting new research projects
+    - Setting up literature reviews
+    - Creating organized research environments
+    - Academic project initialization
+    
+    PROJECT COMPONENTS CREATED:
+    - Hierarchical folder structure
+    - Smart groups for dynamic organization
+    - Initial source collection
+    - Progress tracking documents
+    - Template documents (notes, summaries)
+    - Bibliography management setup
+    
+    FOLDER STRUCTURE CREATED:
+    - /Sources/ - Original papers and articles
+    - /Notes/ - Research notes and annotations
+    - /Analysis/ - Data analysis and findings
+    - /Drafts/ - Work-in-progress documents
+    - /References/ - Bibliography and citations
+    - /Archive/ - Completed or outdated materials
+    
+    SMART GROUPS CREATED:
+    - Recent additions (last 7 days)
+    - Unread sources
+    - High-priority items
+    - Topic-specific collections
+    - Document type filters
+    
+    INITIAL SOURCE POPULATION:
+    - Automatic keyword-based source discovery
+    - Related paper suggestions using AI
+    - Citation network exploration
+    - Web source recommendations
+    
+    WORKFLOW AUTOMATION:
+    - Automated progress tracking
+    - Citation extraction and linking
+    - Duplicate detection across sources
+    - Content summarization
+    
+    COMMON PATTERNS:
+    - Topic research: {"projectName": "Quantum Computing Applications", "topic": "quantum algorithms"}
+    - Literature review: {"projectName": "AI Ethics Review", "keywords": ["artificial intelligence", "ethics", "bias"]}
+    - Comprehensive setup: {"projectName": "Climate Change Analysis", "initialSources": 20, "useAI": true}
+    
+    RETURNS: Complete project setup summary with created structure, initial sources, and automation status
+    ERRORS: Invalid project parameters, source discovery failures, structure creation errors`,
+    
+    parameterHelp: {
+      projectName: 'Research project name (becomes root folder)',
+      topic: 'Main research topic for source discovery',
+      keywords: 'Optional array of keywords for broader source discovery',
+      initialSources: 'Number of initial sources to discover (default: 10, max: 25)',
+      database: 'Target database for project (optional)',
+      useAI: 'Use AI for source recommendations (default: true)'
+    }
+  },
+
+  execute_workflow: {
+    brief: 'Execute predefined research workflows',
+    detailed: `Execute automated research workflows that combine multiple operations for common research tasks.
+    
+    WHEN TO USE:
+    - Automating repetitive research tasks
+    - Standardizing research processes
+    - Large-scale content processing
+    - Multi-step research operations
+    
+    AVAILABLE WORKFLOWS:
+    
+    1. **academic_research** - Complete academic research pipeline
+       - Topic exploration and source discovery
+       - Paper download and organization
+       - Citation network analysis
+       - Summary generation
+    
+    2. **literature_review** - Systematic literature review process
+       - Search strategy execution
+       - Study selection and screening
+       - Data extraction and synthesis
+       - Timeline and trend analysis
+    
+    3. **content_curation** - Web content curation workflow
+       - URL collection and validation
+       - Content extraction and cleaning
+       - Automatic categorization
+       - Duplicate removal
+    
+    4. **data_collection** - Structured data collection process
+       - Source identification and validation
+       - Batch import and processing
+       - Quality control and validation
+       - Organization and tagging
+    
+    WORKFLOW FEATURES:
+    - Multi-step automation with progress tracking
+    - Error handling and recovery
+    - Configurable parameters for each step
+    - Result validation and quality control
+    - Real-time progress updates
+    
+    COMMON PATTERNS:
+    - Academic research: {"workflowType": "academic_research", "topic": "machine learning", "parameters": {"maxPapers": 30}}
+    - Literature review: {"workflowType": "literature_review", "query": "AI ethics", "parameters": {"dateRange": "2020-2024"}}
+    - Content curation: {"workflowType": "content_curation", "sources": [...], "parameters": {"autoTag": true}}
+    
+    RETURNS: Workflow execution summary with step-by-step results, metrics, and generated content
+    ERRORS: Invalid workflow type, parameter errors, execution failures, timeout`,
+    
+    parameterHelp: {
+      workflowType: 'Workflow to execute: "academic_research", "literature_review", "content_curation", "data_collection"',
+      parameters: 'Workflow-specific parameters object',
+      priority: 'Execution priority: "low", "normal", "high" (default: "normal")',
+      maxDuration: 'Maximum execution time in minutes (default: 30)'
+    }
+  },
+
+  monitor_operations: {
+    brief: 'Monitor active operations and system resources',
+    detailed: `Real-time monitoring system for tracking active operations, system performance, and resource utilization.
+    
+    WHEN TO USE:
+    - Monitoring long-running batch operations
+    - System performance analysis
+    - Resource utilization tracking
+    - Operation debugging and optimization
+    
+    MONITORING CAPABILITIES:
+    
+    **Active Operations:**
+    - Current operation status and progress
+    - Queue position and estimated completion
+    - Resource usage per operation
+    - Error logs and warnings
+    
+    **System Resources:**
+    - Memory usage and availability
+    - CPU utilization patterns
+    - Disk space and I/O performance
+    - Network activity for imports
+    
+    **Performance Metrics:**
+    - Operation throughput rates
+    - Average completion times
+    - Success/failure ratios
+    - Resource efficiency metrics
+    
+    **Queue Management:**
+    - Operation prioritization
+    - Concurrency levels
+    - Pending operation counts
+    - Resource allocation
+    
+    MONITORING OPTIONS:
+    - Real-time status updates
+    - Historical performance data
+    - System health indicators
+    - Alerting for issues
+    
+    COMMON PATTERNS:
+    - Current status: {"includeSystem": true, "includeQueue": true}
+    - Operation focus: {"operationId": "batch_import_123", "detailed": true}
+    - Performance analysis: {"includeMetrics": true, "timeRange": "24h"}
+    
+    RETURNS: Comprehensive monitoring data with current status, metrics, and system information
+    ERRORS: Monitoring data unavailable, system access issues`,
+    
+    parameterHelp: {
+      includeSystem: 'Include system resource information (default: true)',
+      includeQueue: 'Include operation queue status (default: true)',
+      includeMetrics: 'Include performance metrics (default: false)',
+      operationId: 'Focus on specific operation (optional)',
+      timeRange: 'Time range for metrics: "1h", "24h", "7d" (default: "1h")'
+    }
+  },
+
+  manage_operation_queue: {
+    brief: 'Manage operation queue with priority control',
+    detailed: `Advanced queue management system for controlling concurrent operations, priorities, and system resource allocation.
+    
+    WHEN TO USE:
+    - Controlling system resource usage
+    - Prioritizing urgent operations
+    - Managing concurrent processing limits
+    - Optimizing system performance
+    
+    QUEUE MANAGEMENT OPERATIONS:
+    
+    **Priority Control:**
+    - Adjust operation priorities
+    - Promote urgent operations
+    - Reorder queue based on importance
+    
+    **Concurrency Management:**
+    - Set maximum concurrent operations
+    - Allocate resources per operation type
+    - Balance CPU and memory usage
+    
+    **Queue Operations:**
+    - Pause/resume specific operations
+    - Cancel pending operations
+    - Clear completed operations
+    - Restart failed operations
+    
+    **Resource Allocation:**
+    - Set memory limits per operation
+    - Configure CPU usage thresholds
+    - Manage disk I/O priorities
+    - Control network bandwidth
+    
+    QUEUE COMMANDS:
+    - "pause": Pause queue processing
+    - "resume": Resume queue processing
+    - "clear": Clear completed operations
+    - "set_concurrency": Adjust concurrent operation limit
+    - "cancel_operation": Cancel specific operation
+    - "reorder": Reorder queue by priority
+    
+    COMMON PATTERNS:
+    - Pause queue: {"command": "pause"}
+    - Set concurrency: {"command": "set_concurrency", "limit": 5}
+    - Cancel operation: {"command": "cancel_operation", "operationId": "batch_123"}
+    - Priority boost: {"command": "set_priority", "operationId": "urgent_123", "priority": "high"}
+    
+    RETURNS: Queue management results with updated status and configuration
+    ERRORS: Invalid commands, operation not found, system limits exceeded`,
+    
+    parameterHelp: {
+      command: 'Queue command: "pause", "resume", "clear", "set_concurrency", "cancel_operation", "set_priority"',
+      operationId: 'Target operation ID (for operation-specific commands)',
+      limit: 'Concurrency limit (for set_concurrency command)',
+      priority: 'Priority level: "low", "normal", "high" (for set_priority command)'
+    }
+  },
+
   create_multi_level_summary: {
     brief: 'Create summaries at different detail levels',
     detailed: `Generate summaries with varying levels of detail.
@@ -1017,6 +1634,155 @@ export const exampleUsage = {
   "name": "Meeting Notes 2024-01-15",
   "content": "Attendees: ...\\nDiscussion points: ...",
   "type": "txt"
+}
+\`\`\``,
+
+  // Phase 4 Advanced Research Automation Examples
+  import_url: `
+### Import web article
+\`\`\`json
+{
+  "url": "https://example.com/research-article",
+  "targetGroup": "/Research/Articles",
+  "tags": ["imported", "research"]
+}
+\`\`\`
+
+### Import PDF from URL
+\`\`\`json
+{
+  "url": "https://arxiv.org/pdf/2301.00001.pdf",
+  "tags": ["arxiv", "machine-learning"]
+}
+\`\`\``,
+
+  download_paper: `
+### Download arXiv paper
+\`\`\`json
+{
+  "source": "arxiv",
+  "identifier": "2301.00001",
+  "targetGroup": "/Research/Papers/2024"
+}
+\`\`\`
+
+### Download paper by DOI
+\`\`\`json
+{
+  "source": "doi",
+  "identifier": "10.1000/182"
+}
+\`\`\``,
+
+  bulk_import_urls: `
+### Import reading list with progress tracking
+\`\`\`json
+{
+  "urls": [
+    "https://blog.example.com/ai-article-1",
+    "https://research.example.com/paper.pdf",
+    "https://news.example.com/tech-news"
+  ],
+  "targetGroup": "/Research/Reading List",
+  "tags": ["reading-list", "2024"],
+  "maxConcurrent": 3
+}
+\`\`\``,
+
+  bulk_download_papers: `
+### Download multiple arXiv papers
+\`\`\`json
+{
+  "papers": [
+    {"source": "arxiv", "id": "2301.00001"},
+    {"source": "arxiv", "id": "2301.00002"},
+    {"source": "doi", "id": "10.1000/182"}
+  ],
+  "targetGroup": "/Research/Literature Review",
+  "autoTag": true,
+  "extractCitations": true
+}
+\`\`\``,
+
+  create_research_project: `
+### Set up new research project
+\`\`\`json
+{
+  "projectName": "Quantum Computing in Drug Discovery",
+  "topic": "quantum algorithms pharmaceutical research",
+  "initialSources": 15,
+  "database": "Research",
+  "useAI": true
+}
+\`\`\``,
+
+  execute_workflow: `
+### Run academic research workflow
+\`\`\`json
+{
+  "workflowType": "academic_research",
+  "parameters": {
+    "topic": "neural networks for climate modeling",
+    "maxPapers": 25,
+    "includeArxiv": true,
+    "startDate": "2022-01-01"
+  }
+}
+\`\`\`
+
+### Execute literature review workflow
+\`\`\`json
+{
+  "workflowType": "literature_review",
+  "parameters": {
+    "searchQuery": "machine learning ethics bias",
+    "databases": ["Research", "Archive"],
+    "dateRange": "2020-2024"
+  }
+}
+\`\`\``,
+
+  monitor_operations: `
+### Monitor all active operations
+\`\`\`json
+{
+  "includeSystem": true,
+  "includeQueue": true,
+  "includeMetrics": false
+}
+\`\`\`
+
+### Focus on specific operation
+\`\`\`json
+{
+  "operationId": "bulk_import_20240823_001",
+  "detailed": true,
+  "includeMetrics": true
+}
+\`\`\``,
+
+  manage_operation_queue: `
+### Pause queue processing
+\`\`\`json
+{
+  "command": "pause"
+}
+\`\`\`
+
+### Set concurrency limit
+\`\`\`json
+{
+  "command": "set_concurrency",
+  "limit": 3
+}
+\`\`\`
+
+### Boost operation priority
+\`\`\`json
+{
+  "command": "set_priority",
+  "operationId": "urgent_download_123",
+  "priority": "high"
 }
 \`\`\``
 };

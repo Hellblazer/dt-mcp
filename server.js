@@ -6,8 +6,9 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
+import { DEVONthinkEnhancedService } from './src/services/devonthink_enhanced.js';
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
-import { systemPrompt, contextPrompts } from './src/system-prompt.js';
+// System prompt functionality removed during cleanup
 import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,6 +46,10 @@ class Logger {
 
 const logger = new Logger('devonthink-mcp');
 const devonthink = new DEVONthinkService();
+const enhancedDevonthink = new DEVONthinkEnhancedService({
+  maxConcurrent: 3,
+  resourceMonitorOptions: { autoStart: false }
+});
 
 // Helper function to format errors consistently across all tools
 function formatToolError(error, toolName, context = {}) {
@@ -76,7 +81,7 @@ async function main() {
     // Create the server
     const server = new McpServer({
       name: 'DEVONthink MCP',
-      version: '1.0.0'
+      version: '2.1.0'
     });
     
     // DEVONthink-specific tools
@@ -829,62 +834,557 @@ async function main() {
         };
       }
     );
-    
-    // Register system prompts for AI clients
-    server.prompt(
-      'devonthink_guide',
-      'Comprehensive guide for using DEVONthink MCP tools effectively',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: systemPrompt
-          }]
+
+    // Phase 1 Infrastructure Tools - Critical Research Automation Capabilities
+    server.tool(
+      'import_url',
+      'Import a URL into DEVONthink with security validation and metadata extraction',
+      {
+        url: z.string().url().describe('URL to import (must be valid HTTP/HTTPS)'),
+        targetGroup: z.string().optional().describe('Target group path (optional)'),
+        extractMetadata: z.boolean().optional().default(false).describe('Extract metadata from imported content'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to imported document')
+      },
+      async ({ url, targetGroup, extractMetadata = false, tags = [] }) => {
+        logger.info(`Importing URL: ${url} to group: ${targetGroup || 'default'}`);
+        try {
+          const result = await devonthink.importUrl(url, targetGroup, extractMetadata, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'import_url');
+        }
+      }
+    );
+
+    server.tool(
+      'create_group',
+      'Create hierarchical groups/folders in DEVONthink for project organization',
+      {
+        name: z.string().min(1).describe('Group name (required, non-empty)'),
+        parentGroup: z.string().optional().describe('Parent group path (optional)'),
+        description: z.string().optional().describe('Group description'),
+        tags: z.array(z.string()).optional().describe('Tags for the group')
+      },
+      async ({ name, parentGroup, description, tags = [] }) => {
+        logger.info(`Creating group: ${name} under parent: ${parentGroup || 'root'}`);
+        try {
+          const result = await devonthink.createGroup(name, parentGroup, description, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'create_group');
+        }
+      }
+    );
+
+    server.tool(
+      'download_paper',
+      'Download academic papers from arXiv, DOI, or PubMed with automatic metadata extraction',
+      {
+        source: z.enum(['arxiv', 'doi', 'pubmed']).describe('Academic source type'),
+        identifier: z.string().min(1).describe('Paper identifier (arXiv ID, DOI, or PubMed ID)'),
+        targetGroup: z.string().optional().describe('Target group for downloaded paper'),
+        extractMetadata: z.boolean().optional().default(true).describe('Extract paper metadata'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to downloaded paper')
+      },
+      async ({ source, identifier, targetGroup, extractMetadata = true, tags = [] }) => {
+        logger.info(`Downloading ${source} paper: ${identifier} to group: ${targetGroup || 'default'}`);
+        try {
+          const result = await devonthink.downloadPaper(source, identifier, targetGroup, extractMetadata, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'download_paper');
+        }
+      }
+    );
+
+    server.tool(
+      'move_to_group',
+      'Move documents to different groups with batch support and failure tracking',
+      {
+        documentUuids: z.union([z.string(), z.array(z.string())]).describe('Document UUID(s) to move'),
+        targetGroup: z.string().min(1).describe('Target group path (required)')
+      },
+      async ({ documentUuids, targetGroup }) => {
+        const uuids = Array.isArray(documentUuids) ? documentUuids : [documentUuids];
+        logger.info(`Moving ${uuids.length} documents to group: ${targetGroup}`);
+        try {
+          const result = await devonthink.moveToGroup(uuids, targetGroup);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'move_to_group');
+        }
+      }
+    );
+
+    server.tool(
+      'create_folder_structure',
+      'Create nested folder hierarchies with batch support and conflict handling',
+      {
+        structure: z.record(z.any()).describe('Nested object representing folder structure (use null for leaf folders)'),
+        rootGroup: z.string().optional().describe('Root group path for the structure'),
+        database: z.string().optional().describe('Target database name'),
+        overwriteExisting: z.boolean().optional().default(false).describe('Whether to update existing groups')
+      },
+      async ({ structure, rootGroup, database, overwriteExisting }) => {
+        logger.info(`Creating folder structure with ${Object.keys(structure).length} top-level folders`);
+        try {
+          const result = await devonthink.createFolderStructure(structure, rootGroup, database, overwriteExisting);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'create_folder_structure');
+        }
+      }
+    );
+
+    server.tool(
+      'bulk_tag',
+      'Apply tag operations to multiple documents efficiently',
+      {
+        documentUuids: z.array(z.string()).describe('Array of document UUIDs to process'),
+        action: z.enum(['add', 'remove', 'replace']).describe('Tag action to perform'),
+        tags: z.array(z.string()).describe('Array of tags to apply')
+      },
+      async ({ documentUuids, action, tags }) => {
+        try {
+          const result = await devonthink.bulkTag(documentUuids, action, tags);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'bulk_tag');
+        }
+      }
+    );
+
+    server.tool(
+      'batch_import',
+      'Process multiple import sources concurrently with progress tracking',
+      {
+        sources: z.array(z.object({
+          type: z.enum(['url', 'file', 'paper']).describe('Import source type'),
+          source: z.string().describe('Source identifier (URL, file path, or paper ID)'),
+          targetGroup: z.string().describe('Target group for imported content'),
+          tags: z.array(z.string()).optional().describe('Tags to apply to imported document'),
+          metadata: z.any().optional().describe('Additional metadata for the import')
+        })).describe('Array of import sources to process'),
+        database: z.string().optional().describe('Target database name'),
+        progressCallback: z.boolean().optional().default(false).describe('Whether to provide progress updates')
+      },
+      async ({ sources, database, progressCallback = false }) => {
+        try {
+          const result = await devonthink.batchImport(sources, database, progressCallback);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'batch_import');
+        }
+      }
+    );
+
+    server.tool(
+      'auto_organize_by_type',
+      'Automatically organize documents by type with smart categorization and folder creation',
+      {
+        sourceGroupUuid: z.string().optional().default('').describe('Source group UUID to organize (empty for current selection or all documents)'),
+        organizationMode: z.enum(['type', 'date', 'size', 'content']).optional().default('type').describe('Organization mode: type (by file extension), date (by creation date), size (by file size), or content (by document type)'),
+        createSubfolders: z.boolean().optional().default(true).describe('Whether to create subfolders for organization categories')
+      },
+      async ({ sourceGroupUuid = '', organizationMode = 'type', createSubfolders = true }) => {
+        try {
+          const result = await devonthink.autoOrganizeByType(sourceGroupUuid, organizationMode, createSubfolders);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'auto_organize_by_type');
+        }
+      }
+    );
+
+    // Phase 4: Advanced Research Automation - Bulk Operations & Workflow Orchestration
+    server.tool(
+      'bulk_import_urls',
+      'Import multiple URLs concurrently with progress tracking and resource monitoring',
+      {
+        urls: z.array(z.string().url()).describe('Array of URLs to import'),
+        targetGroup: z.string().optional().describe('Target group path for imported documents'),
+        maxConcurrent: z.number().optional().default(3).describe('Maximum concurrent imports (default: 3)'),
+        extractMetadata: z.boolean().optional().default(true).describe('Extract metadata from imported content'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to all imported documents')
+      },
+      async ({ urls, targetGroup, maxConcurrent = 3, extractMetadata = true, tags = [] }) => {
+        logger.info(`Bulk importing ${urls.length} URLs with concurrency: ${maxConcurrent}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
         };
+        
+        try {
+          const result = await enhancedDevonthink.bulkImportUrls(
+            urls, 
+            { targetGroup, extractMetadata, tags }, 
+            progressCallback
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'bulk_import_urls');
+        }
+      }
+    );
+
+    server.tool(
+      'bulk_download_papers',
+      'Download multiple academic papers concurrently with metadata extraction',
+      {
+        papers: z.array(z.object({
+          source: z.enum(['arxiv', 'doi', 'pubmed']).describe('Academic source type'),
+          identifier: z.string().describe('Paper identifier'),
+          targetGroup: z.string().optional().describe('Target group for this paper')
+        })).describe('Array of papers to download'),
+        defaultTargetGroup: z.string().optional().describe('Default target group for papers without specific group'),
+        maxConcurrent: z.number().optional().default(2).describe('Maximum concurrent downloads (default: 2)'),
+        extractMetadata: z.boolean().optional().default(true).describe('Extract paper metadata'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to all downloaded papers')
+      },
+      async ({ papers, defaultTargetGroup, maxConcurrent = 2, extractMetadata = true, tags = [] }) => {
+        logger.info(`Bulk downloading ${papers.length} papers with concurrency: ${maxConcurrent}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
+        try {
+          const result = await enhancedDevonthink.bulkDownloadPapers(
+            papers, 
+            { defaultTargetGroup, extractMetadata, tags }, 
+            progressCallback
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'bulk_download_papers');
+        }
+      }
+    );
+
+    server.tool(
+      'create_research_project',
+      'Create comprehensive research project structure with automated organization',
+      {
+        projectName: z.string().min(1).describe('Research project name'),
+        description: z.string().describe('Project description'),
+        initialSources: z.array(z.object({
+          type: z.enum(['url', 'paper', 'search']).describe('Source type'),
+          source: z.string().describe('Source identifier'),
+          metadata: z.any().optional().describe('Additional metadata')
+        })).optional().describe('Initial sources to import'),
+        database: z.string().optional().describe('Target database name'),
+        organizationStructure: z.enum(['topic-based', 'chronological', 'source-based']).optional().default('topic-based').describe('Organization structure')
+      },
+      async ({ projectName, description, initialSources = [], database, organizationStructure = 'topic-based' }) => {
+        logger.info(`Creating research project: ${projectName} with ${initialSources.length} initial sources`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
+        try {
+          const result = await enhancedDevonthink.createResearchProject(
+            projectName,
+            description,
+            initialSources,
+            { database, organizationStructure },
+            progressCallback
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'create_research_project');
+        }
+      }
+    );
+
+    server.tool(
+      'execute_workflow',
+      'Execute predefined research workflows with multi-step orchestration',
+      {
+        templateId: z.enum(['academic_research', 'literature_review', 'data_collection']).describe('Workflow template ID'),
+        parameters: z.object({
+          topic: z.string().optional().describe('Research topic'),
+          targetGroup: z.string().optional().describe('Target group for results'),
+          maxResults: z.number().optional().describe('Maximum results per step'),
+          databases: z.array(z.string()).optional().describe('Databases to search'),
+          timeRange: z.string().optional().describe('Time range for searches'),
+          additionalMetadata: z.any().optional().describe('Additional workflow metadata')
+        }).describe('Workflow parameters'),
+        options: z.object({
+          maxConcurrent: z.number().optional().default(3).describe('Maximum concurrent operations'),
+          timeout: z.number().optional().default(300000).describe('Workflow timeout in milliseconds'),
+          saveProgress: z.boolean().optional().default(true).describe('Save workflow progress')
+        }).optional().describe('Execution options')
+      },
+      async ({ templateId, parameters, options = {} }) => {
+        logger.info(`Executing workflow: ${templateId} with topic: ${parameters.topic || 'unspecified'}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
+        try {
+          const result = await enhancedDevonthink.workflowAutomation.executeWorkflow(
+            templateId,
+            parameters,
+            { ...options, progressCallback }
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'execute_workflow');
+        }
+      }
+    );
+
+    server.tool(
+      'monitor_operations',
+      'Monitor active operations and system resources with real-time status',
+      {
+        includeCompleted: z.boolean().optional().default(false).describe('Include completed operations'),
+        includeResourceMetrics: z.boolean().optional().default(true).describe('Include resource usage metrics')
+      },
+      async ({ includeCompleted = false, includeResourceMetrics = true }) => {
+        logger.info('Monitoring operations and system resources');
+        
+        try {
+          const operationStatus = enhancedDevonthink.operationQueue.getStatus();
+          const progressInfo = enhancedDevonthink.progressTracker.getAllOperations();
+          
+          let result = {
+            operations: operationStatus,
+            progress: progressInfo,
+            timestamp: new Date().toISOString()
+          };
+          
+          if (includeResourceMetrics) {
+            result.resources = enhancedDevonthink.resourceMonitor.getCurrentMetrics();
+          }
+          
+          if (includeCompleted) {
+            result.completedOperations = enhancedDevonthink.operationQueue.getCompletedOperations();
+          }
+          
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'monitor_operations');
+        }
+      }
+    );
+
+    server.tool(
+      'manage_operation_queue',
+      'Manage the operation queue with priority control and resource limits',
+      {
+        action: z.enum(['pause', 'resume', 'clear', 'set_concurrency', 'cancel_operation']).describe('Queue management action'),
+        operationId: z.string().optional().describe('Specific operation ID (for cancel_operation)'),
+        maxConcurrent: z.number().optional().describe('New concurrency limit (for set_concurrency)'),
+        priority: z.number().optional().describe('Priority level for queue operations')
+      },
+      async ({ action, operationId, maxConcurrent, priority }) => {
+        logger.info(`Managing operation queue: ${action} ${operationId ? 'for ' + operationId : ''}`);
+        
+        try {
+          let result;
+          
+          switch (action) {
+            case 'pause':
+              enhancedDevonthink.operationQueue.pause();
+              result = { action: 'paused', status: 'success' };
+              break;
+              
+            case 'resume':
+              enhancedDevonthink.operationQueue.resume();
+              result = { action: 'resumed', status: 'success' };
+              break;
+              
+            case 'clear':
+              enhancedDevonthink.operationQueue.clear();
+              result = { action: 'cleared', status: 'success' };
+              break;
+              
+            case 'set_concurrency':
+              if (maxConcurrent) {
+                enhancedDevonthink.operationQueue.setMaxConcurrent(maxConcurrent);
+                result = { action: 'concurrency_set', maxConcurrent, status: 'success' };
+              } else {
+                throw new Error('maxConcurrent parameter required for set_concurrency action');
+              }
+              break;
+              
+            case 'cancel_operation':
+              if (operationId) {
+                await enhancedDevonthink.operationQueue.cancelOperation(operationId);
+                result = { action: 'operation_cancelled', operationId, status: 'success' };
+              } else {
+                throw new Error('operationId parameter required for cancel_operation action');
+              }
+              break;
+              
+            default:
+              throw new Error(`Unknown action: ${action}`);
+          }
+          
+          result.queueStatus = enhancedDevonthink.operationQueue.getStatus();
+          
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'manage_operation_queue');
+        }
       }
     );
     
+    // Register system prompt for client guidance
     server.prompt(
-      'research_workflow',
-      'Best practices for research workflows with DEVONthink',
-      {},
-      async () => {
-        return {
-          content: [{
+      'devonthink_research_assistant',
+      'DEVONthink Research Assistant - Expert guidance for academic research and knowledge management',
+      [
+        {
+          role: 'system',
+          content: {
             type: 'text',
-            text: contextPrompts.research
-          }]
-        };
-      }
-    );
-    
-    server.prompt(
-      'analysis_workflow',
-      'Guide for document analysis tasks',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: contextPrompts.analysis
-          }]
-        };
-      }
-    );
-    
-    server.prompt(
-      'organization_workflow',
-      'Tips for organizing knowledge in DEVONthink',
-      {},
-      async () => {
-        return {
-          content: [{
-            type: 'text',
-            text: contextPrompts.organization
-          }]
-        };
-      }
+            text: `You are a DEVONthink Research Assistant with access to 47 specialized tools for advanced research automation. You help users conduct comprehensive research, organize knowledge, and automate complex academic workflows.
+
+## Your Capabilities
+
+**Phase 4: Advanced Research Automation** (Current System)
+- 🔄 **Bulk Operations**: Import 100+ URLs, download academic papers in batches
+- 🤖 **Workflow Automation**: Execute multi-step research pipelines
+- 📊 **Progress Monitoring**: Real-time tracking of long-running operations
+- 🧠 **AI-Powered Organization**: Native DEVONthink AI for classification and similarity
+
+## Tool Categories (47 Tools Total)
+
+### 🔍 **Core Operations** (8 tools)
+\`search_devonthink\`, \`read_document\`, \`create_document\`, \`list_databases\`, \`update_tags\`, \`delete_document\`, \`get_related_documents\`, \`ocr_document\`
+
+### 📚 **Advanced Search** (2 tools)  
+\`advanced_search\` (Boolean, field searches), \`list_smart_groups\` (organizational features)
+
+### 🕸️ **Knowledge Graphs** (5 tools)
+\`build_knowledge_graph\`, \`find_shortest_path\`, \`detect_knowledge_clusters\`, \`find_connections\`, \`compare_documents\`
+
+### 🔬 **Research Automation** (3 tools)
+\`automate_research\`, \`organize_findings\`, \`create_collection\`
+
+### 🧠 **Document Intelligence** (3 tools)
+\`analyze_document\`, \`analyze_document_similarity\`, \`batch_read_documents\`
+
+### 🎯 **Knowledge Synthesis** (8 tools)
+\`synthesize_documents\`, \`extract_themes\`, \`classify_document\`, \`get_similar_documents\`, \`create_multi_level_summary\`, \`track_topic_evolution\`, \`create_knowledge_timeline\`, \`identify_trends\`
+
+### ⚡ **Phase 4: Bulk Operations** (9 tools)
+\`import_url\`, \`create_group\`, \`download_paper\`, \`move_to_group\`, \`create_folder_structure\`, \`bulk_tag\`, \`batch_import\`, \`auto_organize_by_type\`, \`create_smart_group\`
+
+### 🚀 **Phase 4: Advanced Automation** (6 tools)
+\`bulk_import_urls\`, \`bulk_download_papers\`, \`create_research_project\`, \`execute_workflow\`, \`monitor_operations\`, \`manage_operation_queue\`
+
+### 📊 **Batch Processing** (2 tools)
+\`batch_search\`, \`batch_read_documents\`
+
+### 🗂️ **Collections** (2 tools)
+\`create_collection\`, \`add_to_collection\`
+
+## Research Workflow Patterns
+
+### 🎓 **Academic Research Pipeline**
+1. \`create_research_project\` → Set up complete project structure
+2. \`bulk_download_papers\` → Collect literature from arXiv, PubMed, DOI
+3. \`synthesize_documents\` → Generate insights and consensus
+4. \`track_topic_evolution\` → Analyze research trends
+5. \`create_multi_level_summary\` → Generate reports
+
+### 📖 **Literature Review Workflow**
+1. \`advanced_search\` → Complex queries with Boolean operators
+2. \`detect_knowledge_clusters\` → Group related documents
+3. \`build_knowledge_graph\` → Map relationships
+4. \`create_knowledge_timeline\` → Chronological analysis
+5. \`automate_research\` → Automated workflow execution
+
+### 🌐 **Content Curation Pipeline**
+1. \`bulk_import_urls\` → Import reading lists and bookmarks
+2. \`auto_organize_by_type\` → AI-powered organization  
+3. \`bulk_tag\` → Batch categorization
+4. \`create_smart_group\` → Dynamic collections
+
+## Performance Guidelines
+
+### ⚡ **Optimized Operations**
+- \`synthesize_documents\`: 30x faster with intelligent sampling
+- \`analyze_document_similarity\`: 120x faster with 100-word sampling
+- \`bulk_import_urls\`: Concurrent processing of 10-50 URLs
+- \`bulk_download_papers\`: Parallel downloads with metadata extraction
+
+### 📏 **Recommended Limits**
+- Batch operations: 10-50 items for optimal performance
+- Document synthesis: 2-15 documents recommended, 50 maximum
+- Knowledge graphs: Depth 3-5 for comprehensive exploration
+- URL imports: 10-50 URLs per batch, 100 maximum
+
+## AI Integration
+
+### 🤖 **Native DEVONthink AI**
+- \`classify_document\`: Pre-trained classification models
+- \`get_similar_documents\`: Semantic similarity detection
+- \`detect_knowledge_clusters\`: AI-powered document grouping
+- Uses DEVONthink 4's trained AI rather than reimplementation
+
+## Best Practices
+
+### 🎯 **Tool Selection**
+- Use \`get_tool_help\` to explore available tools and examples
+- Start with \`list_databases\` to understand available data
+- Use \`advanced_search\` for complex queries with operators
+- Prefer bulk operations for efficiency (\`bulk_import_urls\`, \`bulk_download_papers\`)
+
+### 📊 **Monitoring & Management**
+- Use \`monitor_operations\` to track long-running processes
+- Use \`manage_operation_queue\` to control resource usage
+- Check progress regularly with real-time status updates
+
+### 🔍 **Search Strategies**
+- Boolean operators: "AI AND (ethics OR safety)"
+- Field searches: "kind:PDF tag:research created:>=2023"
+- Fuzzy matching: "~quantum" for approximate matches
+- Date ranges: "modified:<=7days" for recent documents
+
+Your goal is to help users conduct thorough, efficient research while leveraging DEVONthink's native AI capabilities and the advanced automation features of Phase 4.`
+          }
+        }
+      ]
     );
     
     // Use STDIO transport

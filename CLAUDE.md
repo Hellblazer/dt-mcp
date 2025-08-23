@@ -7,7 +7,7 @@ Production-ready Model Context Protocol (MCP) server that exposes DEVONthink 4's
 The DEVONthink MCP server is specifically designed for AI clients with these features:
 
 1. **get_tool_help** - Meta-tool for AI assistance
-   - Use `{"toolName": "list"}` to see all 29 available tools
+   - Use `{"toolName": "list"}` to see all 47 available tools
    - Use `{"toolName": "search_devonthink", "examples": true}` for examples
 
 2. **Native AI Integration** - Direct exposure of DEVONthink 4 capabilities:
@@ -30,13 +30,13 @@ The DEVONthink MCP server is specifically designed for AI clients with these fea
 
 ## Current Status
 
-**Version**: 2.0.1  
+**Version**: 2.1.0  
 **Architecture**: Thin wrapper around DEVONthink 4 native AI  
-**Implementation**: Complete with performance optimizations  
-**Tools**: 30 specialized MCP tools (2 with optimized variants)  
+**Implementation**: Complete with Phase 4 Advanced Research Automation  
+**Tools**: 47 specialized MCP tools (6 Phase 4 + optimized variants)  
 **Performance**: 30x+ improvement for expensive operations  
-**Testing**: Comprehensive test suite + CI/CD  
-**Quality**: Production-ready with full error handling  
+**Repository**: Cleaned and production-ready  
+**Quality**: Full error handling and validation  
 **Optimizations**: Intelligent sampling for synthesize_documents and analyze_document_similarity  
 
 ## Key Commands
@@ -46,7 +46,7 @@ The DEVONthink MCP server is specifically designed for AI clients with these fea
 npm start                    # Run MCP server
 npm dev                      # Run with debug logging
 npm test                     # Run all tests (AppleScript + comprehensive)
-npm run test:comprehensive   # Test all 29 tools across 4 phases
+npm run test:comprehensive   # Test all 47 tools across 4 phases
 npm run test:mcp            # Interactive MCP Inspector
 npm run test:tool <name>    # Test individual tool
 npm run validate            # Code quality validation
@@ -63,8 +63,8 @@ node test_mcp_tool.js search_devonthink '{"query": "test"}'  # Single tool test
 
 ```
 dt-mcp/
-├── server.js                     # Main MCP server (29 tools)
-├── package.json                  # v2.0.1 with comprehensive scripts
+├── server.js                     # Main MCP server (47 tools)
+├── package.json                  # v2.1.0 with comprehensive scripts
 ├── README.md                     # Complete documentation
 ├── TESTING.md                    # Comprehensive testing guide
 ├── src/services/
@@ -90,7 +90,7 @@ dt-mcp/
 └── CLAUDE.md                    # This file
 ```
 
-## Complete Tool Reference (30 Tools)
+## Complete Tool Reference (47 Tools)
 
 ### Core Operations (9 tools)
 ```bash
