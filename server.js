@@ -10,6 +10,14 @@ import { DEVONthinkEnhancedService } from './src/services/devonthink_enhanced.js
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
 // System prompt functionality removed during cleanup
 import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
+import { 
+  detectClient, 
+  applyClientLimits, 
+  truncateResponse, 
+  getClientLimits,
+  logLimitApplication,
+  enhanceToolDescription 
+} from './src/utils/client-limits.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +84,37 @@ function formatToolError(error, toolName, context = {}) {
   };
 }
 
+// Helper function to apply client limits and format responses
+function formatClientAwareResponse(toolName, response, originalParams, clientType = null) {
+  const limits = getClientLimits(toolName, clientType);
+  
+  // Check and potentially truncate response
+  const { response: finalResponse, truncated, metadata } = truncateResponse(response, limits);
+  
+  // Add client context to response
+  const clientAwareResponse = {
+    ...finalResponse,
+    _clientInfo: {
+      clientType: limits.clientType,
+      clientName: limits.name,
+      appliedLimits: {
+        maxResults: limits.maxResults,
+        maxResponseSize: limits.maxResponseSize,
+        responseSize: JSON.stringify(finalResponse).length
+      },
+      truncated,
+      metadata
+    }
+  };
+  
+  return {
+    content: [{ 
+      type: 'text', 
+      text: JSON.stringify(clientAwareResponse, null, 2) 
+    }]
+  };
+}
+
 
 async function main() {
   logger.info('Starting DEVONthink MCP server');
@@ -98,14 +137,21 @@ async function main() {
         offset: z.number().optional().default(0).describe('Number of results to skip (default: 0)')
       },
       async ({ query, database, limit = 50, offset = 0 }) => {
-        logger.info(`Searching DEVONthink for: ${query}`);
+        const originalParams = { query, database, limit, offset };
+        
+        // Apply client-aware limits
+        const adjustedParams = applyClientLimits('search_devonthink', originalParams);
+        const finalLimit = adjustedParams.limit;
+        const clientType = adjustedParams._clientLimits.clientType;
+        
+        logger.info(`Searching DEVONthink for: ${query} (limit: ${limit} → ${finalLimit} for ${clientType})`);
+        logLimitApplication('search_devonthink', originalParams, adjustedParams, adjustedParams._clientLimits.appliedLimits);
+        
         try {
-          const results = await devonthink.search(query, database, limit, offset);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
-          };
+          const results = await devonthink.search(query, database, finalLimit, offset);
+          return formatClientAwareResponse('search_devonthink', results, originalParams, clientType);
         } catch (error) {
-          return formatToolError(error, 'search_devonthink', { query, database, limit, offset });
+          return formatToolError(error, 'search_devonthink', { query, database, limit: finalLimit, offset });
         }
       }
     );
