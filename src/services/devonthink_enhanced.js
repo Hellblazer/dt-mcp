@@ -7,6 +7,7 @@ import { OperationQueue } from './operation_queue.js';
 import { ProgressTracker } from './progress_tracker.js';
 import { ResourceMonitor } from './resource_monitor.js';
 import { ExternalAPIService } from './external_apis.js';
+import { WorkflowAutomation } from './workflow_automation.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -22,6 +23,7 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
     this.progressTracker = new ProgressTracker();
     this.resourceMonitor = new ResourceMonitor(options.resourceMonitorOptions);
     this.externalAPIs = new ExternalAPIService();
+    this.workflowAutomation = new WorkflowAutomation(this);
     
     // Enhanced options
     this.options = {
@@ -354,7 +356,8 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
    * @returns {Promise<Object>} Project creation results
    */
   async createResearchProject(projectConfig) {
-    var { name, description, database, structure, initialPapers = [], initialUrls = [] } = projectConfig;
+    var { projectName, description, database, organizationStructure, initialPapers = [], initialUrls = [] } = projectConfig;
+    var name = projectName; // For compatibility with existing code that expects 'name'
     
     var operationId = this.progressTracker.startOperation(
       `project_${Date.now()}`,
@@ -379,42 +382,45 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
         }
       };
 
-      // Step 1: Validate project configuration
+      // Step 1: Validate project configuration  
       this.progressTracker.updateProgress(operationId, 1, 'Validating project configuration');
       this.validateProjectConfig(projectConfig);
 
       // Step 2: Create main project folder
       this.progressTracker.updateProgress(operationId, 2, 'Creating main project folder');
-      var mainFolderResult = await this.createGroup({
+      var mainFolderResult = await this.createGroup(
         name,
-        description: description || `Research project: ${name}`,
+        null, // parentGroup
+        description || `Research project: ${name}`,
+        null, // tags
         database
-      });
+      );
       
-      if (!mainFolderResult.success) {
-        throw new Error(`Failed to create main project folder: ${mainFolderResult.error}`);
+      if (mainFolderResult.status !== 'success') {
+        throw new Error(`Failed to create main project folder: ${mainFolderResult.error || 'Unknown error'}`);
       }
       
-      results.projectFolder = mainFolderResult.group;
-      results.createdFolders.push(mainFolderResult.group);
+      results.projectFolder = mainFolderResult.data;
+      results.createdFolders.push(mainFolderResult.data);
       results.summary.foldersCreated++;
 
       // Step 3: Create folder structure
       this.progressTracker.updateProgress(operationId, 3, 'Creating folder structure');
-      if (structure && structure.length > 0) {
-        for (var folder of structure) {
-          var folderResult = await this.createGroup({
-            name: folder.name,
-            description: folder.description || `${folder.name} folder`,
-            parentGroup: results.projectFolder.uuid,
+      if (organizationStructure && organizationStructure.length > 0) {
+        for (var folder of organizationStructure) {
+          var folderResult = await this.createGroup(
+            folder.name,
+            results.projectFolder.uuid, // parentGroup
+            folder.description || `${folder.name} folder`,
+            null, // tags
             database
-          });
+          );
           
-          if (folderResult.success) {
-            results.createdFolders.push(folderResult.group);
+          if (folderResult.status === 'success') {
+            results.createdFolders.push(folderResult.data);
             results.summary.foldersCreated++;
           } else {
-            results.summary.errors.push(`Failed to create folder ${folder.name}: ${folderResult.error}`);
+            results.summary.errors.push(`Failed to create folder ${folder.name}: ${folderResult.error || 'Unknown error'}`);
           }
         }
       }
@@ -614,8 +620,10 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
   }
 
   validateProjectConfig(config) {
-    if (!config.name || typeof config.name !== 'string') {
-      throw new Error('Project name is required and must be a string');
+    // More detailed debugging
+    console.error('VALIDATION DEBUG: config.projectName =', config.projectName, 'type =', typeof config.projectName);
+    if (!config.projectName || typeof config.projectName !== 'string') {
+      throw new Error(`UNIQUE_ENHANCED_SERVICE_ERROR_12345: Project name validation failed. Received: ${JSON.stringify(config.projectName)} (type: ${typeof config.projectName})`);
     }
     
     if (config.structure && !Array.isArray(config.structure)) {

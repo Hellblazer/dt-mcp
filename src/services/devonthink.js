@@ -938,7 +938,7 @@ export class DEVONthinkService {
 
       // Execute working folder structure creation
       const result = await withTimeout(
-        this.runAppleScript('create_folder_structure_working', []),
+        this.runAppleScript('create_folder_structure_working', [JSON.stringify(params)]),
         120000, // 2 minute timeout for complex structures
         'Folder structure creation operation timed out'
       );
@@ -1119,7 +1119,7 @@ export class DEVONthinkService {
 
       // Execute working batch import operation
       const result = await withTimeout(
-        this.runAppleScript('batch_import_working', []),
+        this.runAppleScript('batch_import_working', [JSON.stringify(params)]),
         180000, // 3 minute timeout for batch import operations
         'Batch import operation timed out'
       );

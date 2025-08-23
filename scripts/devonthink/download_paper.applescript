@@ -330,16 +330,36 @@ on buildDownloadResult(docRecord, metadataObj, includeMetadata, sourceType, iden
 end buildDownloadResult
 
 -- Utility function to extract JSON value (simplified)
+-- Extract JSON value (simplified parser) - handles spaces after colon
 on extractJsonValue(jsonString, keyName)
 	try
-		set searchKey to "\"" & keyName & "\":\""
-		set startPos to (offset of searchKey in jsonString)
-		if startPos > 0 then
-			set startPos to startPos + (length of searchKey)
+		-- Look for the key with colon (may have spaces)
+		set searchKey to "\"" & keyName & "\":"
+		set keyPos to (offset of searchKey in jsonString)
+		if keyPos > 0 then
+			-- Start after the key and colon
+			set startPos to keyPos + (length of searchKey)
 			set remainingString to text startPos thru -1 of jsonString
-			set endPos to (offset of "\"" in remainingString)
-			if endPos > 1 then
-				return text 1 thru (endPos - 1) of remainingString
+			
+			-- Skip any whitespace after colon
+			set i to 1
+			repeat while i ≤ (length of remainingString)
+				set char to character i of remainingString
+				if char is not " " and char is not tab then
+					exit repeat
+				end if
+				set i to i + 1
+			end repeat
+			
+			-- Check if next character is a quote (string value)
+			if i ≤ (length of remainingString) and character i of remainingString is "\"" then
+				-- Find the closing quote
+				set valueStart to i + 1
+				set searchString to text valueStart thru -1 of remainingString
+				set endPos to (offset of "\"" in searchString)
+				if endPos > 0 then
+					return text 1 thru (endPos - 1) of searchString
+				end if
 			end if
 		end if
 	end try
