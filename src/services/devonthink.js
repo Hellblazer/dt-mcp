@@ -608,7 +608,7 @@ export class DEVONthinkService {
    * @param {string} [database] - Target database name
    * @returns {Promise<Object>} Import result with document UUID and metadata
    */
-  async importUrl(url, targetGroup = null, extractMetadata = false, tags = null, database = null) {
+  async importUrl(url, targetGroup = null, extractMetadata = false, tags = null, name = null) {
     try {
       // Validate parameters
       validators.validateNonEmptyString(url, 'url');
@@ -639,10 +639,10 @@ export class DEVONthinkService {
       // Build parameters object
       const params = {
         url,
+        name: name || '',
         targetGroup: targetGroup || '',
         extractMetadata: extractMetadata || false,
-        tags: tags ? JSON.stringify(tags) : '',
-        database: database || ''
+        tags: tags ? JSON.stringify(tags) : ''
       };
 
       // Execute import with timeout
@@ -834,7 +834,7 @@ export class DEVONthinkService {
               targetGroup,
               true, // Always extract metadata for academic papers
               tags,
-              database
+              paperMetadata.title // Use paper title as custom name
             );
             
             // Enhance the result with academic paper metadata

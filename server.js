@@ -841,14 +841,15 @@ async function main() {
       'Import a URL into DEVONthink with security validation and metadata extraction',
       {
         url: z.string().url().describe('URL to import (must be valid HTTP/HTTPS)'),
+        name: z.string().optional().describe('Custom name for the imported document (optional)'),
         targetGroup: z.string().optional().describe('Target group path (optional)'),
         extractMetadata: z.boolean().optional().default(false).describe('Extract metadata from imported content'),
         tags: z.array(z.string()).optional().describe('Tags to apply to imported document')
       },
-      async ({ url, targetGroup, extractMetadata = false, tags = [] }) => {
+      async ({ url, name, targetGroup, extractMetadata = false, tags = [] }) => {
         logger.info(`Importing URL: ${url} to group: ${targetGroup || 'default'}`);
         try {
-          const result = await devonthink.importUrl(url, targetGroup, extractMetadata, tags);
+          const result = await devonthink.importUrl(url, targetGroup, extractMetadata, tags, name);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
