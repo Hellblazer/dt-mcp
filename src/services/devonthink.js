@@ -491,7 +491,6 @@ export class DEVONthinkService {
           return result;
         }
         // If no documents processed, fall back to native version
-        console.log('Optimized version returned no documents, trying native version');
         
         if (progressCallback) {
           progressCallback(createProgressUpdate(operationName, 'fallback_to_native', 50, { 
@@ -818,13 +817,11 @@ export class DEVONthinkService {
 
       // Try to resolve paper metadata using external APIs first
       try {
-        console.log(`Resolving ${source} paper: ${identifier}`);
         const metadataResult = await this.externalAPIs.resolveAcademicPaper(source, identifier);
         
         if (metadataResult.success) {
           paperMetadata = metadataResult;
           importUrl = metadataResult.pdf_url;
-          console.log(`Successfully resolved paper: ${metadataResult.title}`);
           
           // Add paper-specific tags
           const paperTags = [...(tags || []), ...metadataResult.keywords];
@@ -832,7 +829,6 @@ export class DEVONthinkService {
           
           // If we have a PDF URL, import it directly
           if (importUrl) {
-            console.log(`Importing paper from URL: ${importUrl}`);
             const importResult = await this.importUrl(
               importUrl,
               targetGroup,
@@ -858,15 +854,13 @@ export class DEVONthinkService {
             });
           }
         } else {
-          console.warn(`External API failed for ${source}:${identifier}: ${metadataResult.error}`);
+          // External API failed, continue to fallback
         }
       } catch (apiError) {
-        console.warn(`External API error for ${source}:${identifier}: ${apiError.message}`);
-        // Continue with fallback to AppleScript
+        // External API error, continue to fallback
       }
 
       // Fallback to AppleScript implementation
-      console.log(`Falling back to AppleScript implementation for ${source}:${identifier}`);
       
       // Build parameters object for AppleScript
       const params = {

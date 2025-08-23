@@ -47,10 +47,14 @@ on run argv
 		end if
 		
 		-- Validate source type
+		set validSources to {"arxiv", "doi", "pubmed"}
 		set isValidSource to false
-		if sourceType is "arxiv" or sourceType is "doi" or sourceType is "pubmed" then
-			set isValidSource to true
-		end if
+		repeat with validSource in validSources
+			if sourceType is validSource then
+				set isValidSource to true
+				exit repeat
+			end if
+		end repeat
 		
 		if not isValidSource then
 			return "{\"error\": \"Invalid source type: " & sourceType & ". Valid sources: arxiv, doi, pubmed\", \"code\": \"INVALID_SOURCE\"}"
@@ -63,8 +67,10 @@ on run argv
 		end if
 		
 		-- Create temporary file path
+		set tempDir to (path to temporary items) as string
 		set fileName to sourceType & "_" & my replaceString(identifier, "/", "_") & ".pdf"
-		set posixTempFile to "/tmp/" & fileName
+		set tempFile to tempDir & fileName
+		set posixTempFile to POSIX path of tempFile
 		
 		-- Download file using curl
 		set curlCommand to "curl -L -o " & quoted form of posixTempFile & " " & quoted form of downloadUrl
@@ -182,19 +188,15 @@ end buildDownloadUrl
 -- Get target database
 on getTargetDatabase(databaseName)
 	tell application id "DNtp"
-		try
-			if databaseName is "" then
-				return current database
-			else
-				try
-					return database databaseName
-				on error
-					return missing value
-				end try
-			end if
-		on error
-			return missing value
-		end try
+		if databaseName is "" then
+			return current database
+		else
+			try
+				return database databaseName
+			on error
+				return missing value
+			end try
+		end if
 	end tell
 end getTargetDatabase
 
@@ -230,7 +232,7 @@ on getOrCreateGroup(targetDb, groupPath)
 			return currentGroup
 			
 		on error errMsg
-			-- log "Error creating group path: " & errMsg
+			log "Error creating group path: " & errMsg
 			return missing value
 		end try
 	end tell
@@ -274,7 +276,7 @@ on extractPaperMetadata(docRecord, sourceType, identifier)
 			return metadataJson
 			
 		on error errMsg
-			-- log "Error extracting paper metadata: " & errMsg
+			log "Error extracting paper metadata: " & errMsg
 			return "{\"error\": \"Failed to extract metadata\"}"
 		end try
 	end tell
