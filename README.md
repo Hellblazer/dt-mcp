@@ -11,7 +11,7 @@ A Model Context Protocol (MCP) server that integrates Claude Desktop and Claude 
 
 ## Overview
 
-This MCP server provides a wrapper around DEVONthink 4's native capabilities, exposing **36 specialized tools** for document operations, knowledge management, and **advanced research automation** through the MCP protocol.
+This MCP server provides a wrapper around DEVONthink 4's native capabilities, exposing **47 specialized tools** for document operations, knowledge management, and **advanced research automation** through the MCP protocol.
 
 ### Key Features
 
@@ -378,7 +378,7 @@ npm run test:mcp
 
 - **Version**: 2.1.0 (Phase 4)
 - **Implementation**: Complete with advanced research automation
-- **Tools**: 36 specialized MCP tools (including 6 Phase 4 tools)
+- **Tools**: 47 specialized MCP tools (including 6 Phase 4 tools)
 - **Infrastructure**: 76,903+ lines of automation code
 - **Testing**: Comprehensive test suite + CI/CD + Phase 4 validation
 - **Architecture**: Native AI wrapper with production-ready infrastructure

@@ -1,7 +1,7 @@
 {
   "name": "devonthink-mcp-server",
   "version": "2.1.0",
-  "description": "Advanced Research Automation MCP server for DEVONthink integration with 36 specialized tools, featuring Phase 4 bulk operations, workflow orchestration, and infrastructure for large-scale research projects",
+  "description": "Advanced Research Automation MCP server for DEVONthink integration with 47 specialized tools, featuring Phase 4 bulk operations, workflow orchestration, and infrastructure for large-scale research projects",
   "main": "server.js",
   "publishConfig": {
     "access": "public"
