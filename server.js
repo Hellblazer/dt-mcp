@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
+import { DEVONthinkEnhancedService } from './src/services/devonthink_enhanced.js';
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
 // System prompt functionality removed during cleanup
 import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
@@ -45,6 +46,10 @@ class Logger {
 
 const logger = new Logger('devonthink-mcp');
 const devonthink = new DEVONthinkService();
+const enhancedDevonthink = new DEVONthinkEnhancedService({
+  maxConcurrent: 3,
+  resourceMonitorOptions: { autoStart: false }
+});
 
 // Helper function to format errors consistently across all tools
 function formatToolError(error, toolName, context = {}) {
@@ -1003,6 +1008,261 @@ async function main() {
           };
         } catch (error) {
           return formatToolError(error, 'auto_organize_by_type');
+        }
+      }
+    );
+
+    // Phase 4: Advanced Research Automation - Bulk Operations & Workflow Orchestration
+    server.tool(
+      'bulk_import_urls',
+      'Import multiple URLs concurrently with progress tracking and resource monitoring',
+      {
+        urls: z.array(z.string().url()).describe('Array of URLs to import'),
+        targetGroup: z.string().optional().describe('Target group path for imported documents'),
+        maxConcurrent: z.number().optional().default(3).describe('Maximum concurrent imports (default: 3)'),
+        extractMetadata: z.boolean().optional().default(true).describe('Extract metadata from imported content'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to all imported documents')
+      },
+      async ({ urls, targetGroup, maxConcurrent = 3, extractMetadata = true, tags = [] }) => {
+        logger.info(`Bulk importing ${urls.length} URLs with concurrency: ${maxConcurrent}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
+        try {
+          const result = await enhancedDevonthink.bulkImportUrls(
+            urls, 
+            { targetGroup, extractMetadata, tags }, 
+            progressCallback
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'bulk_import_urls');
+        }
+      }
+    );
+
+    server.tool(
+      'bulk_download_papers',
+      'Download multiple academic papers concurrently with metadata extraction',
+      {
+        papers: z.array(z.object({
+          source: z.enum(['arxiv', 'doi', 'pubmed']).describe('Academic source type'),
+          identifier: z.string().describe('Paper identifier'),
+          targetGroup: z.string().optional().describe('Target group for this paper')
+        })).describe('Array of papers to download'),
+        defaultTargetGroup: z.string().optional().describe('Default target group for papers without specific group'),
+        maxConcurrent: z.number().optional().default(2).describe('Maximum concurrent downloads (default: 2)'),
+        extractMetadata: z.boolean().optional().default(true).describe('Extract paper metadata'),
+        tags: z.array(z.string()).optional().describe('Tags to apply to all downloaded papers')
+      },
+      async ({ papers, defaultTargetGroup, maxConcurrent = 2, extractMetadata = true, tags = [] }) => {
+        logger.info(`Bulk downloading ${papers.length} papers with concurrency: ${maxConcurrent}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+        };
+        
+        try {
+          const result = await enhancedDevonthink.bulkDownloadPapers(
+            papers, 
+            { defaultTargetGroup, extractMetadata, tags }, 
+            progressCallback
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'bulk_download_papers');
+        }
+      }
+    );
+
+    server.tool(
+      'create_research_project',
+      'Create comprehensive research project structure with automated organization',
+      {
+        projectName: z.string().min(1).describe('Research project name'),
+        description: z.string().describe('Project description'),
+        initialSources: z.array(z.object({
+          type: z.enum(['url', 'paper', 'search']).describe('Source type'),
+          source: z.string().describe('Source identifier'),
+          metadata: z.any().optional().describe('Additional metadata')
+        })).optional().describe('Initial sources to import'),
+        database: z.string().optional().describe('Target database name'),
+        organizationStructure: z.enum(['topic-based', 'chronological', 'source-based']).optional().default('topic-based').describe('Organization structure')
+      },
+      async ({ projectName, description, initialSources = [], database, organizationStructure = 'topic-based' }) => {
+        logger.info(`Creating research project: ${projectName} with ${initialSources.length} initial sources`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
+        try {
+          const result = await enhancedDevonthink.createResearchProject(
+            projectName,
+            description,
+            initialSources,
+            { database, organizationStructure },
+            progressCallback
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'create_research_project');
+        }
+      }
+    );
+
+    server.tool(
+      'execute_workflow',
+      'Execute predefined research workflows with multi-step orchestration',
+      {
+        templateId: z.enum(['academic_research', 'literature_review', 'data_collection']).describe('Workflow template ID'),
+        parameters: z.object({
+          topic: z.string().optional().describe('Research topic'),
+          targetGroup: z.string().optional().describe('Target group for results'),
+          maxResults: z.number().optional().describe('Maximum results per step'),
+          databases: z.array(z.string()).optional().describe('Databases to search'),
+          timeRange: z.string().optional().describe('Time range for searches'),
+          additionalMetadata: z.any().optional().describe('Additional workflow metadata')
+        }).describe('Workflow parameters'),
+        options: z.object({
+          maxConcurrent: z.number().optional().default(3).describe('Maximum concurrent operations'),
+          timeout: z.number().optional().default(300000).describe('Workflow timeout in milliseconds'),
+          saveProgress: z.boolean().optional().default(true).describe('Save workflow progress')
+        }).optional().describe('Execution options')
+      },
+      async ({ templateId, parameters, options = {} }) => {
+        logger.info(`Executing workflow: ${templateId} with topic: ${parameters.topic || 'unspecified'}`);
+        
+        const progressCallback = (progress) => {
+          logger.debug(`Progress: ${progress.operation} - ${progress.stage} (${progress.progress}%)`);
+          if (progress.details) {
+            logger.debug(`Details: ${JSON.stringify(progress.details)}`);
+          }
+        };
+        
+        try {
+          const result = await enhancedDevonthink.workflowAutomation.executeWorkflow(
+            templateId,
+            parameters,
+            { ...options, progressCallback }
+          );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'execute_workflow');
+        }
+      }
+    );
+
+    server.tool(
+      'monitor_operations',
+      'Monitor active operations and system resources with real-time status',
+      {
+        includeCompleted: z.boolean().optional().default(false).describe('Include completed operations'),
+        includeResourceMetrics: z.boolean().optional().default(true).describe('Include resource usage metrics')
+      },
+      async ({ includeCompleted = false, includeResourceMetrics = true }) => {
+        logger.info('Monitoring operations and system resources');
+        
+        try {
+          const operationStatus = enhancedDevonthink.operationQueue.getStatus();
+          const progressInfo = enhancedDevonthink.progressTracker.getAllOperations();
+          
+          let result = {
+            operations: operationStatus,
+            progress: progressInfo,
+            timestamp: new Date().toISOString()
+          };
+          
+          if (includeResourceMetrics) {
+            result.resources = enhancedDevonthink.resourceMonitor.getCurrentMetrics();
+          }
+          
+          if (includeCompleted) {
+            result.completedOperations = enhancedDevonthink.operationQueue.getCompletedOperations();
+          }
+          
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'monitor_operations');
+        }
+      }
+    );
+
+    server.tool(
+      'manage_operation_queue',
+      'Manage the operation queue with priority control and resource limits',
+      {
+        action: z.enum(['pause', 'resume', 'clear', 'set_concurrency', 'cancel_operation']).describe('Queue management action'),
+        operationId: z.string().optional().describe('Specific operation ID (for cancel_operation)'),
+        maxConcurrent: z.number().optional().describe('New concurrency limit (for set_concurrency)'),
+        priority: z.number().optional().describe('Priority level for queue operations')
+      },
+      async ({ action, operationId, maxConcurrent, priority }) => {
+        logger.info(`Managing operation queue: ${action} ${operationId ? 'for ' + operationId : ''}`);
+        
+        try {
+          let result;
+          
+          switch (action) {
+            case 'pause':
+              enhancedDevonthink.operationQueue.pause();
+              result = { action: 'paused', status: 'success' };
+              break;
+              
+            case 'resume':
+              enhancedDevonthink.operationQueue.resume();
+              result = { action: 'resumed', status: 'success' };
+              break;
+              
+            case 'clear':
+              enhancedDevonthink.operationQueue.clear();
+              result = { action: 'cleared', status: 'success' };
+              break;
+              
+            case 'set_concurrency':
+              if (maxConcurrent) {
+                enhancedDevonthink.operationQueue.setMaxConcurrent(maxConcurrent);
+                result = { action: 'concurrency_set', maxConcurrent, status: 'success' };
+              } else {
+                throw new Error('maxConcurrent parameter required for set_concurrency action');
+              }
+              break;
+              
+            case 'cancel_operation':
+              if (operationId) {
+                await enhancedDevonthink.operationQueue.cancelOperation(operationId);
+                result = { action: 'operation_cancelled', operationId, status: 'success' };
+              } else {
+                throw new Error('operationId parameter required for cancel_operation action');
+              }
+              break;
+              
+            default:
+              throw new Error(`Unknown action: ${action}`);
+          }
+          
+          result.queueStatus = enhancedDevonthink.operationQueue.getStatus();
+          
+          return {
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'manage_operation_queue');
         }
       }
     );

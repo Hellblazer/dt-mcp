@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { ErrorTypes, createError, errorHandlers, validators, formatResponse, createSuccessResponse, withProgress, withTimeout, createProgressUpdate } from '../utils/errors.js';
+import { ExternalAPIService } from './external_apis.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +13,7 @@ const execAsync = promisify(exec);
 export class DEVONthinkService {
   constructor() {
     this.scriptsPath = path.join(__dirname, '../../scripts/devonthink');
+    this.externalAPIs = new ExternalAPIService();
   }
 
   async ensureDEVONthinkRunning() {
@@ -785,7 +787,7 @@ export class DEVONthinkService {
   }
 
   /**
-   * Download Paper - Download academic papers from various sources
+   * Download Paper - Download academic papers from various sources with enhanced API integration
    * @param {string} source - Source type (arxiv, doi, pubmed)
    * @param {string} identifier - Paper identifier
    * @param {string} [targetGroup] - Target group path
@@ -811,7 +813,62 @@ export class DEVONthinkService {
         throw createError(ErrorTypes.VALIDATION_ERROR, 'Identifier cannot be empty');
       }
 
-      // Build parameters object
+      let paperMetadata = null;
+      let importUrl = null;
+
+      // Try to resolve paper metadata using external APIs first
+      try {
+        console.log(`Resolving ${source} paper: ${identifier}`);
+        const metadataResult = await this.externalAPIs.resolveAcademicPaper(source, identifier);
+        
+        if (metadataResult.success) {
+          paperMetadata = metadataResult;
+          importUrl = metadataResult.pdf_url;
+          console.log(`Successfully resolved paper: ${metadataResult.title}`);
+          
+          // Add paper-specific tags
+          const paperTags = [...(tags || []), ...metadataResult.keywords];
+          tags = [...new Set(paperTags)]; // Remove duplicates
+          
+          // If we have a PDF URL, import it directly
+          if (importUrl) {
+            console.log(`Importing paper from URL: ${importUrl}`);
+            const importResult = await this.importUrl(
+              importUrl,
+              targetGroup,
+              true, // Always extract metadata for academic papers
+              tags,
+              database
+            );
+            
+            // Enhance the result with academic paper metadata
+            return createSuccessResponse('Paper downloaded and imported successfully', {
+              uuid: importResult.data.uuid,
+              name: paperMetadata.title,
+              path: importResult.data.path,
+              source: source.toLowerCase(),
+              identifier: identifier.trim(),
+              metadata: {
+                ...importResult.data.metadata,
+                academic: paperMetadata,
+                resolvedViaAPI: true
+              },
+              importedFrom: importUrl,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } else {
+          console.warn(`External API failed for ${source}:${identifier}: ${metadataResult.error}`);
+        }
+      } catch (apiError) {
+        console.warn(`External API error for ${source}:${identifier}: ${apiError.message}`);
+        // Continue with fallback to AppleScript
+      }
+
+      // Fallback to AppleScript implementation
+      console.log(`Falling back to AppleScript implementation for ${source}:${identifier}`);
+      
+      // Build parameters object for AppleScript
       const params = {
         source: source.toLowerCase(),
         identifier: identifier.trim(),
@@ -837,13 +894,19 @@ export class DEVONthinkService {
         throw createError(ErrorTypes.OPERATION_ERROR, 'Download failed - no document UUID returned');
       }
 
+      // Merge external API metadata if available
+      const enhancedMetadata = paperMetadata ? 
+        { ...result.metadata, academic: paperMetadata, resolvedViaAPI: true } : 
+        result.metadata;
+
       return createSuccessResponse('Paper downloaded successfully', {
         uuid: result.uuid,
         name: result.name,
         path: result.path,
         source: result.source,
         identifier: result.identifier,
-        metadata: result.metadata || null,
+        metadata: enhancedMetadata || null,
+        method: paperMetadata ? 'api_enhanced' : 'applescript_only',
         timestamp: new Date().toISOString()
       });
 
