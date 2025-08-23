@@ -54,13 +54,10 @@ class Logger {
 
 const logger = new Logger('devonthink-mcp');
 const devonthink = new DEVONthinkService();
-console.error('DEBUG: About to create enhanced service...');
 const enhancedDevonthink = new DEVONthinkEnhancedService({
   maxConcurrent: 3,
   resourceMonitorOptions: { autoStart: false }
 });
-console.error('DEBUG: Enhanced service created successfully:', enhancedDevonthink.constructor.name);
-console.error('DEBUG: Enhanced service has createResearchProject?', typeof enhancedDevonthink.createResearchProject === 'function');
 
 // Helper function to format errors consistently across all tools
 function formatToolError(error, toolName, context = {}) {
@@ -932,7 +929,7 @@ async function main() {
 
     server.tool(
       'download_paper',
-      'Download academic papers from arXiv, DOI, or PubMed with automatic metadata extraction',
+      'Download academic papers with enhanced metadata extraction and robust error handling. Features native arXiv API integration with external API fallback for maximum reliability.',
       {
         source: z.enum(['arxiv', 'doi', 'pubmed']).describe('Academic source type'),
         identifier: z.string().min(1).describe('Paper identifier (arXiv ID, DOI, or PubMed ID)'),
@@ -1164,10 +1161,7 @@ async function main() {
             initialUrls: initialSources?.filter(s => s.type === 'url') || [],
             organizationStructure
           };
-          logger.info(`DEBUG: Calling createResearchProject with config: ${JSON.stringify(config, null, 2)}`);
-          console.error('DEBUG: About to call enhancedDevonthink.createResearchProject with config:', JSON.stringify(config, null, 2));
           const result = await enhancedDevonthink.createResearchProject(config);
-          console.error('DEBUG: createResearchProject returned result:', JSON.stringify(result, null, 2));
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };

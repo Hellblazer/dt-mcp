@@ -4,6 +4,8 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { ErrorTypes, createError, errorHandlers, validators, formatResponse, createSuccessResponse, withProgress, withTimeout, createProgressUpdate } from '../utils/errors.js';
 import { ExternalAPIService } from './external_apis.js';
+import ArXivClient from './arxiv-client.js';
+import { formatMCPError, ErrorHandlers } from '../utils/enhanced-errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +16,7 @@ export class DEVONthinkService {
   constructor() {
     this.scriptsPath = path.join(__dirname, '../../scripts/devonthink');
     this.externalAPIs = new ExternalAPIService();
+    this.arxivClient = new ArXivClient();
   }
 
   async ensureDEVONthinkRunning() {
@@ -815,7 +818,71 @@ export class DEVONthinkService {
       let paperMetadata = null;
       let importUrl = null;
 
-      // Try to resolve paper metadata using external APIs first
+      // Enhanced arXiv handling using dedicated client
+      if (source.toLowerCase() === 'arxiv') {
+        try {
+          // Use our enhanced arXiv client
+          const downloadResult = await this.arxivClient.downloadPDF(identifier);
+          
+          // Import the downloaded PDF into DEVONthink
+          const importResult = await this.runAppleScript('import_file', [
+            downloadResult.tempPath,
+            targetGroup || '',
+            extractMetadata || false,
+            tags ? JSON.stringify(tags) : '',
+            database || '',
+            downloadResult.metadata.title // Use paper title as custom name
+          ]);
+          
+          // Clean up temporary files
+          await this.arxivClient.cleanup(downloadResult.tempDir);
+          
+          if (importResult.error) {
+            throw ErrorHandlers.arXivDownload(identifier, 'import_to_devonthink', new Error(importResult.error));
+          }
+          
+          // Return enhanced result with arXiv metadata
+          return createSuccessResponse('arXiv paper downloaded and imported successfully', {
+            uuid: importResult.uuid,
+            name: downloadResult.metadata.title,
+            path: importResult.path,
+            source: 'arxiv',
+            identifier: identifier.trim(),
+            metadata: {
+              ...importResult.metadata,
+              academic: {
+                title: downloadResult.metadata.title,
+                abstract: downloadResult.metadata.abstract,
+                authors: downloadResult.metadata.authors,
+                categories: downloadResult.metadata.categories,
+                published: downloadResult.metadata.published,
+                updated: downloadResult.metadata.updated,
+                doi: downloadResult.metadata.doi,
+                arxivUrl: downloadResult.metadata.arxivUrl,
+                pdfUrl: downloadResult.metadata.pdfUrl,
+                journalRef: downloadResult.metadata.journalRef,
+                comment: downloadResult.metadata.comment
+              },
+              file: {
+                originalFilename: downloadResult.filename,
+                fileSize: downloadResult.size,
+                downloadTimestamp: new Date().toISOString()
+              },
+              resolvedViaAPI: true
+            },
+            method: 'arxiv_native_client',
+            timestamp: new Date().toISOString()
+          });
+          
+        } catch (arxivError) {
+          // Log the enhanced error for debugging
+          console.error('arXiv download failed:', formatMCPError(arxivError));
+          
+          // Fall through to external API/AppleScript fallback
+        }
+      }
+
+      // Try to resolve paper metadata using external APIs for non-arXiv sources
       try {
         const metadataResult = await this.externalAPIs.resolveAcademicPaper(source, identifier);
         
