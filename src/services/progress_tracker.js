@@ -247,6 +247,19 @@ export class ProgressTracker extends EventEmitter {
   }
 
   /**
+   * Get all operations (active and completed) - for compatibility
+   * @returns {Object} Object containing active and completed operations
+   */
+  getAllOperations() {
+    return {
+      active: this.getAllActiveOperations(),
+      completed: Array.from(this.completedOperations.values()).map(op => 
+        this.buildProgressUpdate(op)
+      )
+    };
+  }
+
+  /**
    * Get operation statistics
    * @param {string} operationId - Operation identifier
    * @returns {Object|null} Operation statistics

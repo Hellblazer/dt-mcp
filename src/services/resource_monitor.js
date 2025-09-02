@@ -234,6 +234,14 @@ export class ResourceMonitor extends EventEmitter {
   }
 
   /**
+   * Get current resource metrics (alias for getResourceStatus for compatibility)
+   * @returns {Object} Current resource metrics
+   */
+  getCurrentMetrics() {
+    return this.getResourceStatus();
+  }
+
+  /**
    * Get detailed operation statistics
    * @param {string} operationType - Optional filter by operation type
    * @returns {Object} Operation statistics
