@@ -12,6 +12,7 @@ export class OperationQueue extends EventEmitter {
     this.pendingOperations = [];
     this.completedOperations = new Map();
     this.operationCounter = 0;
+    this.paused = false;
     
     // Setup cleanup interval (can be disabled for testing)
     this.setupCleanupInterval();
@@ -164,6 +165,11 @@ export class OperationQueue extends EventEmitter {
    * Process the operation queue
    */
   async processQueue() {
+    // Don't process queue if paused
+    if (this.paused) {
+      return;
+    }
+    
     while (this.activeOperations.size < this.maxConcurrent && 
            this.pendingOperations.length > 0) {
       
@@ -270,6 +276,83 @@ export class OperationQueue extends EventEmitter {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
+  }
+
+  /**
+   * Pause the operation queue
+   */
+  pause() {
+    this.paused = true;
+    this.emit('queue_paused');
+  }
+
+  /**
+   * Resume the operation queue
+   */
+  resume() {
+    this.paused = false;
+    this.emit('queue_resumed');
+    this.processQueue();
+  }
+
+  /**
+   * Clear all pending operations
+   */
+  clear() {
+    var clearedCount = this.pendingOperations.length;
+    this.pendingOperations = [];
+    this.emit('queue_cleared', { clearedCount });
+    return clearedCount;
+  }
+
+  /**
+   * Set maximum concurrent operations
+   */
+  setMaxConcurrent(maxConcurrent) {
+    this.maxConcurrent = maxConcurrent;
+    this.emit('concurrency_changed', { maxConcurrent });
+    this.processQueue();
+  }
+
+  /**
+   * Cancel a specific operation
+   */
+  async cancelOperation(operationId) {
+    // Check if operation is active
+    if (this.activeOperations.has(operationId)) {
+      var operation = this.activeOperations.get(operationId);
+      operation.status = 'cancelled';
+      this.activeOperations.delete(operationId);
+      
+      // Record as completed with cancelled status
+      this.completedOperations.set(operationId, {
+        ...operation,
+        completedAt: Date.now(),
+        error: 'Operation cancelled'
+      });
+      
+      this.emit('operation_cancelled', { operationId });
+      operation.reject(new Error('Operation cancelled'));
+      return { success: true, status: 'active' };
+    }
+
+    // Check if operation is pending
+    var pendingIndex = this.pendingOperations.findIndex(op => op.id === operationId);
+    if (pendingIndex >= 0) {
+      var operation = this.pendingOperations.splice(pendingIndex, 1)[0];
+      operation.reject(new Error('Operation cancelled'));
+      this.emit('operation_cancelled', { operationId });
+      return { success: true, status: 'pending' };
+    }
+
+    return { success: false, status: 'not_found' };
+  }
+
+  /**
+   * Get queue status (alias for getQueueStatus for compatibility)
+   */
+  getStatus() {
+    return this.getQueueStatus();
   }
 
   /**

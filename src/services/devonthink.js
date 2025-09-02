@@ -4,6 +4,8 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { ErrorTypes, createError, errorHandlers, validators, formatResponse, createSuccessResponse, withProgress, withTimeout, createProgressUpdate } from '../utils/errors.js';
 import { ExternalAPIService } from './external_apis.js';
+import ArXivClient from './arxiv-client.js';
+import { formatMCPError, ErrorHandlers } from '../utils/enhanced-errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +16,7 @@ export class DEVONthinkService {
   constructor() {
     this.scriptsPath = path.join(__dirname, '../../scripts/devonthink');
     this.externalAPIs = new ExternalAPIService();
+    this.arxivClient = new ArXivClient();
   }
 
   async ensureDEVONthinkRunning() {
@@ -491,7 +494,6 @@ export class DEVONthinkService {
           return result;
         }
         // If no documents processed, fall back to native version
-        console.log('Optimized version returned no documents, trying native version');
         
         if (progressCallback) {
           progressCallback(createProgressUpdate(operationName, 'fallback_to_native', 50, { 
@@ -609,7 +611,7 @@ export class DEVONthinkService {
    * @param {string} [database] - Target database name
    * @returns {Promise<Object>} Import result with document UUID and metadata
    */
-  async importUrl(url, targetGroup = null, extractMetadata = false, tags = null, database = null) {
+  async importUrl(url, targetGroup = null, extractMetadata = false, tags = null, name = null) {
     try {
       // Validate parameters
       validators.validateNonEmptyString(url, 'url');
@@ -640,10 +642,10 @@ export class DEVONthinkService {
       // Build parameters object
       const params = {
         url,
+        name: name || '',
         targetGroup: targetGroup || '',
         extractMetadata: extractMetadata || false,
-        tags: tags ? JSON.stringify(tags) : '',
-        database: database || ''
+        tags: tags ? JSON.stringify(tags) : ''
       };
 
       // Execute import with timeout
@@ -816,15 +818,77 @@ export class DEVONthinkService {
       let paperMetadata = null;
       let importUrl = null;
 
-      // Try to resolve paper metadata using external APIs first
+      // Enhanced arXiv handling using dedicated client
+      if (source.toLowerCase() === 'arxiv') {
+        try {
+          // Use our enhanced arXiv client
+          const downloadResult = await this.arxivClient.downloadPDF(identifier);
+          
+          // Import the downloaded PDF into DEVONthink
+          const importResult = await this.runAppleScript('import_file', [
+            downloadResult.tempPath,
+            targetGroup || '',
+            extractMetadata || false,
+            tags ? JSON.stringify(tags) : '',
+            database || '',
+            downloadResult.metadata.title // Use paper title as custom name
+          ]);
+          
+          // Clean up temporary files
+          await this.arxivClient.cleanup(downloadResult.tempDir);
+          
+          if (importResult.error) {
+            throw ErrorHandlers.arXivDownload(identifier, 'import_to_devonthink', new Error(importResult.error));
+          }
+          
+          // Return enhanced result with arXiv metadata
+          return createSuccessResponse('arXiv paper downloaded and imported successfully', {
+            uuid: importResult.uuid,
+            name: downloadResult.metadata.title,
+            path: importResult.path,
+            source: 'arxiv',
+            identifier: identifier.trim(),
+            metadata: {
+              ...importResult.metadata,
+              academic: {
+                title: downloadResult.metadata.title,
+                abstract: downloadResult.metadata.abstract,
+                authors: downloadResult.metadata.authors,
+                categories: downloadResult.metadata.categories,
+                published: downloadResult.metadata.published,
+                updated: downloadResult.metadata.updated,
+                doi: downloadResult.metadata.doi,
+                arxivUrl: downloadResult.metadata.arxivUrl,
+                pdfUrl: downloadResult.metadata.pdfUrl,
+                journalRef: downloadResult.metadata.journalRef,
+                comment: downloadResult.metadata.comment
+              },
+              file: {
+                originalFilename: downloadResult.filename,
+                fileSize: downloadResult.size,
+                downloadTimestamp: new Date().toISOString()
+              },
+              resolvedViaAPI: true
+            },
+            method: 'arxiv_native_client',
+            timestamp: new Date().toISOString()
+          });
+          
+        } catch (arxivError) {
+          // Log the enhanced error for debugging
+          console.error('arXiv download failed:', formatMCPError(arxivError));
+          
+          // Fall through to external API/AppleScript fallback
+        }
+      }
+
+      // Try to resolve paper metadata using external APIs for non-arXiv sources
       try {
-        console.log(`Resolving ${source} paper: ${identifier}`);
         const metadataResult = await this.externalAPIs.resolveAcademicPaper(source, identifier);
         
         if (metadataResult.success) {
           paperMetadata = metadataResult;
           importUrl = metadataResult.pdf_url;
-          console.log(`Successfully resolved paper: ${metadataResult.title}`);
           
           // Add paper-specific tags
           const paperTags = [...(tags || []), ...metadataResult.keywords];
@@ -832,13 +896,12 @@ export class DEVONthinkService {
           
           // If we have a PDF URL, import it directly
           if (importUrl) {
-            console.log(`Importing paper from URL: ${importUrl}`);
             const importResult = await this.importUrl(
               importUrl,
               targetGroup,
               true, // Always extract metadata for academic papers
               tags,
-              database
+              paperMetadata.title // Use paper title as custom name
             );
             
             // Enhance the result with academic paper metadata
@@ -858,15 +921,13 @@ export class DEVONthinkService {
             });
           }
         } else {
-          console.warn(`External API failed for ${source}:${identifier}: ${metadataResult.error}`);
+          // External API failed, continue to fallback
         }
       } catch (apiError) {
-        console.warn(`External API error for ${source}:${identifier}: ${apiError.message}`);
-        // Continue with fallback to AppleScript
+        // External API error, continue to fallback
       }
 
       // Fallback to AppleScript implementation
-      console.log(`Falling back to AppleScript implementation for ${source}:${identifier}`);
       
       // Build parameters object for AppleScript
       const params = {
@@ -944,7 +1005,7 @@ export class DEVONthinkService {
 
       // Execute working folder structure creation
       const result = await withTimeout(
-        this.runAppleScript('create_folder_structure_working', []),
+        this.runAppleScript('create_folder_structure_working', [JSON.stringify(params)]),
         120000, // 2 minute timeout for complex structures
         'Folder structure creation operation timed out'
       );
@@ -1125,7 +1186,7 @@ export class DEVONthinkService {
 
       // Execute working batch import operation
       const result = await withTimeout(
-        this.runAppleScript('batch_import_working', []),
+        this.runAppleScript('batch_import_working', [JSON.stringify(params)]),
         180000, // 3 minute timeout for batch import operations
         'Batch import operation timed out'
       );

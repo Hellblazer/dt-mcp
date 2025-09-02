@@ -10,6 +10,14 @@ import { DEVONthinkEnhancedService } from './src/services/devonthink_enhanced.js
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
 // System prompt functionality removed during cleanup
 import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
+import { 
+  detectClient, 
+  applyClientLimits, 
+  truncateResponse, 
+  getClientLimits,
+  logLimitApplication,
+  enhanceToolDescription 
+} from './src/utils/client-limits.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +81,37 @@ function formatToolError(error, toolName, context = {}) {
   };
 }
 
+// Helper function to apply client limits and format responses
+function formatClientAwareResponse(toolName, response, originalParams, clientType = null) {
+  const limits = getClientLimits(toolName, clientType);
+  
+  // Check and potentially truncate response
+  const { response: finalResponse, truncated, metadata } = truncateResponse(response, limits);
+  
+  // Add client context to response
+  const clientAwareResponse = {
+    ...finalResponse,
+    _clientInfo: {
+      clientType: limits.clientType,
+      clientName: limits.name,
+      appliedLimits: {
+        maxResults: limits.maxResults,
+        maxResponseSize: limits.maxResponseSize,
+        responseSize: JSON.stringify(finalResponse).length
+      },
+      truncated,
+      metadata
+    }
+  };
+  
+  return {
+    content: [{ 
+      type: 'text', 
+      text: JSON.stringify(clientAwareResponse, null, 2) 
+    }]
+  };
+}
+
 
 async function main() {
   logger.info('Starting DEVONthink MCP server');
@@ -95,14 +134,21 @@ async function main() {
         offset: z.number().optional().default(0).describe('Number of results to skip (default: 0)')
       },
       async ({ query, database, limit = 50, offset = 0 }) => {
-        logger.info(`Searching DEVONthink for: ${query}`);
+        const originalParams = { query, database, limit, offset };
+        
+        // Apply client-aware limits
+        const adjustedParams = applyClientLimits('search_devonthink', originalParams);
+        const finalLimit = adjustedParams.limit;
+        const clientType = adjustedParams._clientLimits.clientType;
+        
+        logger.info(`Searching DEVONthink for: ${query} (limit: ${limit} → ${finalLimit} for ${clientType})`);
+        logLimitApplication('search_devonthink', originalParams, adjustedParams, adjustedParams._clientLimits.appliedLimits);
+        
         try {
-          const results = await devonthink.search(query, database, limit, offset);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(results, null, 2) }]
-          };
+          const results = await devonthink.search(query, database, finalLimit, offset);
+          return formatClientAwareResponse('search_devonthink', results, originalParams, clientType);
         } catch (error) {
-          return formatToolError(error, 'search_devonthink', { query, database, limit, offset });
+          return formatToolError(error, 'search_devonthink', { query, database, limit: finalLimit, offset });
         }
       }
     );
@@ -841,14 +887,15 @@ async function main() {
       'Import a URL into DEVONthink with security validation and metadata extraction',
       {
         url: z.string().url().describe('URL to import (must be valid HTTP/HTTPS)'),
+        name: z.string().optional().describe('Custom name for the imported document (optional)'),
         targetGroup: z.string().optional().describe('Target group path (optional)'),
         extractMetadata: z.boolean().optional().default(false).describe('Extract metadata from imported content'),
         tags: z.array(z.string()).optional().describe('Tags to apply to imported document')
       },
-      async ({ url, targetGroup, extractMetadata = false, tags = [] }) => {
+      async ({ url, name, targetGroup, extractMetadata = false, tags = [] }) => {
         logger.info(`Importing URL: ${url} to group: ${targetGroup || 'default'}`);
         try {
-          const result = await devonthink.importUrl(url, targetGroup, extractMetadata, tags);
+          const result = await devonthink.importUrl(url, targetGroup, extractMetadata, tags, name);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
@@ -882,7 +929,7 @@ async function main() {
 
     server.tool(
       'download_paper',
-      'Download academic papers from arXiv, DOI, or PubMed with automatic metadata extraction',
+      'Download academic papers with enhanced metadata extraction and robust error handling. Features native arXiv API integration with external API fallback for maximum reliability.',
       {
         source: z.enum(['arxiv', 'doi', 'pubmed']).describe('Academic source type'),
         identifier: z.string().min(1).describe('Paper identifier (arXiv ID, DOI, or PubMed ID)'),
@@ -1106,17 +1153,22 @@ async function main() {
         };
         
         try {
-          const result = await enhancedDevonthink.createResearchProject(
+          const config = {
             projectName,
             description,
-            initialSources,
-            { database, organizationStructure },
-            progressCallback
-          );
+            database,
+            initialPapers: initialSources?.filter(s => s.type === 'paper') || [],
+            initialUrls: initialSources?.filter(s => s.type === 'url') || [],
+            organizationStructure
+          };
+          const result = await enhancedDevonthink.createResearchProject(config);
           return {
             content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
           };
         } catch (error) {
+          console.error('DEBUG: createResearchProject threw error:', error);
+          console.error('DEBUG: Error message:', error.message);
+          console.error('DEBUG: Error stack:', error.stack);
           return formatToolError(error, 'create_research_project');
         }
       }

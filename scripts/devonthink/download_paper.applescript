@@ -1,8 +1,8 @@
 #!/usr/bin/osascript
 
 (*
-Download Paper Tool for DEVONthink MCP Server
-Downloads academic papers from various sources with metadata extraction
+Fixed Download Paper Tool for DEVONthink MCP Server
+Uses curl + file import instead of non-existent "import URL" command
 *)
 
 on run argv
@@ -47,24 +47,35 @@ on run argv
 		end if
 		
 		-- Validate source type
-		set validSources to {"arxiv", "doi", "pubmed"}
 		set isValidSource to false
-		repeat with validSource in validSources
-			if sourceType is validSource then
-				set isValidSource to true
-				exit repeat
-			end if
-		end repeat
+		if sourceType is "arxiv" or sourceType is "doi" or sourceType is "pubmed" then
+			set isValidSource to true
+		end if
 		
 		if not isValidSource then
 			return "{\"error\": \"Invalid source type: " & sourceType & ". Valid sources: arxiv, doi, pubmed\", \"code\": \"INVALID_SOURCE\"}"
 		end if
 		
-		-- Validate identifier format
-		set validationResult to validateIdentifier(sourceType, identifier)
-		if validationResult is not "valid" then
-			return "{\"error\": \"" & validationResult & "\", \"code\": \"INVALID_IDENTIFIER\"}"
+		-- Build download URL based on source
+		set downloadUrl to buildDownloadUrl(sourceType, identifier)
+		if downloadUrl is "" then
+			return "{\"error\": \"Failed to build download URL for " & sourceType & ":" & identifier & "\", \"code\": \"URL_BUILD_FAILED\"}"
 		end if
+		
+		-- Create temporary file path
+		set fileName to sourceType & "_" & my replaceString(identifier, "/", "_") & ".pdf"
+		set posixTempFile to "/tmp/" & fileName
+		
+		-- Download file using curl
+		set curlCommand to "curl -L -o " & quoted form of posixTempFile & " " & quoted form of downloadUrl
+		set curlResult to do shell script curlCommand
+		
+		-- Check if file was downloaded
+		tell application "System Events"
+			if not (exists file posixTempFile) then
+				return "{\"error\": \"Failed to download file from " & downloadUrl & "\", \"code\": \"DOWNLOAD_FAILED\"}"
+			end if
+		end tell
 		
 		-- Check DEVONthink availability
 		tell application "System Events"
@@ -89,17 +100,30 @@ on run argv
 				end if
 			end if
 			
-			-- Build download URL based on source
-			set downloadUrl to buildDownloadUrl(sourceType, identifier)
-			if downloadUrl is "" then
-				return "{\"error\": \"Failed to build download URL for " & sourceType & ":" & identifier & "\", \"code\": \"URL_BUILD_FAILED\"}"
+			-- Import the downloaded file using create record method
+			try
+				set importedRecord to create record with {type:PDF document, file:posixTempFile} in targetLocation
+				if importedRecord is missing value then
+					-- Fallback to import method for non-PDF files
+					set importedRecord to import posixTempFile to targetLocation
+				end if
+			on error
+				-- Fallback to import method for non-PDF files
+				set importedRecord to import posixTempFile to targetLocation
+			end try
+			
+			if importedRecord is missing value then
+				-- Clean up temp file
+				try
+					do shell script "rm " & quoted form of posixTempFile
+				end try
+				return "{\"error\": \"Failed to import downloaded file\", \"code\": \"IMPORT_FAILED\"}"
 			end if
 			
-			-- Download and import the paper
-			set importedRecord to import URL downloadUrl to targetLocation
-			if importedRecord is missing value then
-				return "{\"error\": \"Failed to download paper from " & downloadUrl & "\", \"code\": \"DOWNLOAD_FAILED\"}"
-			end if
+			-- Clean up temporary file
+			try
+				do shell script "rm " & quoted form of posixTempFile
+			end try
 			
 			-- Set tags if provided
 			if tagsString is not "" then
@@ -122,50 +146,22 @@ on run argv
 			end if
 			
 			-- Build result
-			set resultJson to buildDownloadResult(importedRecord, metadataObj, extractMetadata, sourceType, identifier)
+			set resultJson to buildDownloadResult(importedRecord, metadataObj, extractMetadata, sourceType, identifier, downloadUrl)
 			
 			return resultJson
 		end tell
 		
 	on error errMsg number errNum
+		-- Clean up temp file if it exists
+		try
+			if posixTempFile is not "" then
+				do shell script "rm " & quoted form of posixTempFile
+			end if
+		end try
 		set cleanErrMsg to my cleanErrorMessage(errMsg)
 		return "{\"error\": \"" & cleanErrMsg & "\", \"code\": \"APPLESCRIPT_ERROR\", \"number\": " & errNum & "}"
 	end try
 end run
-
--- Validate identifier format based on source
-on validateIdentifier(sourceType, identifier)
-	if sourceType is "arxiv" then
-		-- arXiv format: YYMM.NNNNN or YYMM.NNNNNvN
-		if not (identifier contains ".") then
-			return "arXiv identifier must contain a dot (format: YYMM.NNNNN)"
-		end if
-		-- Basic format check
-		if length of identifier < 9 then
-			return "arXiv identifier too short (format: YYMM.NNNNN)"
-		end if
-	else if sourceType is "doi" then
-		-- DOI format: 10.xxxx/yyyy
-		if not (identifier starts with "10.") then
-			return "DOI must start with '10.' (format: 10.xxxx/yyyy)"
-		end if
-		if not (identifier contains "/") then
-			return "DOI must contain a slash (format: 10.xxxx/yyyy)"
-		end if
-	else if sourceType is "pubmed" then
-		-- PubMed ID: numeric
-		try
-			set pmid to identifier as number
-			if pmid < 1 then
-				return "PubMed ID must be a positive number"
-			end if
-		on error
-			return "PubMed ID must be numeric"
-		end try
-	end if
-	
-	return "valid"
-end validateIdentifier
 
 -- Build download URL based on source and identifier
 on buildDownloadUrl(sourceType, identifier)
@@ -186,15 +182,19 @@ end buildDownloadUrl
 -- Get target database
 on getTargetDatabase(databaseName)
 	tell application id "DNtp"
-		if databaseName is "" then
-			return current database
-		else
-			try
-				return database databaseName
-			on error
-				return missing value
-			end try
-		end if
+		try
+			if databaseName is "" then
+				return current database
+			else
+				try
+					return database databaseName
+				on error
+					return missing value
+				end try
+			end if
+		on error
+			return missing value
+		end try
 	end tell
 end getTargetDatabase
 
@@ -230,7 +230,7 @@ on getOrCreateGroup(targetDb, groupPath)
 			return currentGroup
 			
 		on error errMsg
-			log "Error creating group path: " & errMsg
+			-- log "Error creating group path: " & errMsg
 			return missing value
 		end try
 	end tell
@@ -274,7 +274,7 @@ on extractPaperMetadata(docRecord, sourceType, identifier)
 			return metadataJson
 			
 		on error errMsg
-			log "Error extracting paper metadata: " & errMsg
+			-- log "Error extracting paper metadata: " & errMsg
 			return "{\"error\": \"Failed to extract metadata\"}"
 		end try
 	end tell
@@ -305,7 +305,7 @@ on parseTagsString(tagsString)
 end parseTagsString
 
 -- Build download result JSON
-on buildDownloadResult(docRecord, metadataObj, includeMetadata, sourceType, identifier)
+on buildDownloadResult(docRecord, metadataObj, includeMetadata, sourceType, identifier, downloadUrl)
 	tell application id "DNtp"
 		set docUUID to uuid of docRecord
 		set docName to name of docRecord
@@ -317,6 +317,7 @@ on buildDownloadResult(docRecord, metadataObj, includeMetadata, sourceType, iden
 		set resultJson to resultJson & ", \"path\": \"" & my escapeJsonString(docPath) & "\""
 		set resultJson to resultJson & ", \"source\": \"" & sourceType & "\""
 		set resultJson to resultJson & ", \"identifier\": \"" & my escapeJsonString(identifier) & "\""
+		set resultJson to resultJson & ", \"downloadUrl\": \"" & my escapeJsonString(downloadUrl) & "\""
 		
 		if includeMetadata and metadataObj is not "" then
 			set resultJson to resultJson & ", \"metadata\": " & metadataObj
@@ -329,16 +330,36 @@ on buildDownloadResult(docRecord, metadataObj, includeMetadata, sourceType, iden
 end buildDownloadResult
 
 -- Utility function to extract JSON value (simplified)
+-- Extract JSON value (simplified parser) - handles spaces after colon
 on extractJsonValue(jsonString, keyName)
 	try
-		set searchKey to "\"" & keyName & "\":\""
-		set startPos to (offset of searchKey in jsonString)
-		if startPos > 0 then
-			set startPos to startPos + (length of searchKey)
+		-- Look for the key with colon (may have spaces)
+		set searchKey to "\"" & keyName & "\":"
+		set keyPos to (offset of searchKey in jsonString)
+		if keyPos > 0 then
+			-- Start after the key and colon
+			set startPos to keyPos + (length of searchKey)
 			set remainingString to text startPos thru -1 of jsonString
-			set endPos to (offset of "\"" in remainingString)
-			if endPos > 1 then
-				return text 1 thru (endPos - 1) of remainingString
+			
+			-- Skip any whitespace after colon
+			set i to 1
+			repeat while i ≤ (length of remainingString)
+				set char to character i of remainingString
+				if char is not " " and char is not tab then
+					exit repeat
+				end if
+				set i to i + 1
+			end repeat
+			
+			-- Check if next character is a quote (string value)
+			if i ≤ (length of remainingString) and character i of remainingString is "\"" then
+				-- Find the closing quote
+				set valueStart to i + 1
+				set searchString to text valueStart thru -1 of remainingString
+				set endPos to (offset of "\"" in searchString)
+				if endPos > 0 then
+					return text 1 thru (endPos - 1) of searchString
+				end if
 			end if
 		end if
 	end try

@@ -645,31 +645,43 @@ export const toolDescriptions = {
   },
 
   download_paper: {
-    brief: 'Download academic paper with metadata extraction',
-    detailed: `Download academic papers from various sources with automatic metadata extraction.
+    brief: 'Download academic paper with enhanced reliability and metadata extraction',
+    detailed: `Download academic papers with robust error handling and comprehensive metadata extraction. Features native arXiv API integration with external API fallback for maximum reliability.
     
     WHEN TO USE:
     - Building research paper collections
-    - Downloading from arXiv, PubMed, academic sites
-    - Automated literature collection
+    - Downloading from arXiv, PubMed, DOI sources
+    - Automated literature collection with high success rates
+    
+    ENHANCED FEATURES:
+    - Native arXiv API client with retry logic
+    - External API fallback for maximum reliability
+    - Comprehensive error handling with contextual solutions
+    - Graceful handling of invalid paper IDs
+    - Enhanced metadata extraction with validation
     
     SUPPORTED SOURCES:
-    - arXiv (arxiv.org)
-    - PubMed/PMC
-    - IEEE Xplore
-    - ACM Digital Library
-    - Direct PDF URLs
+    - arXiv (native API integration with fallback)
+    - DOI (CrossRef and publisher APIs)
+    - PubMed/PMC (NCBI E-utilities)
     
     METADATA EXTRACTION:
-    - Title, authors, abstract
+    - Title, authors, abstract (with fallbacks)
     - Publication date and venue
     - DOI and citation information
-    - Automatic tagging by source
+    - Categories and subject classifications
+    - Automatic tagging by source and type
+    
+    ERROR HANDLING:
+    - Validates paper identifiers before processing
+    - Provides helpful error messages with solutions
+    - Gracefully handles network issues and timeouts
+    - Falls back to external APIs when native calls fail
     
     COMMON PATTERNS:
     - arXiv: {"source": "arxiv", "identifier": "2301.00001"}
     - DOI: {"source": "doi", "identifier": "10.1000/182"}
-    - Direct: {"source": "url", "identifier": "https://example.com/paper.pdf"}
+    - PubMed: {"source": "pubmed", "identifier": "12345678"}
     
     RETURNS: Downloaded paper with extracted metadata
     ERRORS: Paper not found, download failed, unsupported source`,

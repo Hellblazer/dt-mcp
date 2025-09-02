@@ -366,7 +366,6 @@ The comprehensive test suite generates `test_results_comprehensive.json`:
     }
   },
   "errors": [
-    "batch_search: Tool not implemented",
     "create_collection: Database permission error"
   ]
 }
