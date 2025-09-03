@@ -157,7 +157,7 @@ async function main() {
       'read_document',
       'Read the content and metadata of a DEVONthink document',
       {
-        uuid: z.string().describe('Document UUID'),
+        uuid: z.string().uuid().describe('Document UUID'),
         includeContent: z.boolean().optional().default(true).describe('Include document content (default: true)')
       },
       async ({ uuid, includeContent = true }) => {
@@ -217,7 +217,7 @@ async function main() {
       'update_tags',
       'Update tags for a DEVONthink document',
       {
-        uuid: z.string().describe('Document UUID'),
+        uuid: z.string().uuid().describe('Document UUID'),
         tags: z.array(z.string()).describe('Array of tags to set')
       },
       async ({ uuid, tags }) => {
@@ -237,7 +237,7 @@ async function main() {
       'delete_document',
       'Delete a document from DEVONthink (DESTRUCTIVE OPERATION - USE WITH CAUTION)',
       {
-        uuid: z.string().describe('Document UUID to delete'),
+        uuid: z.string().uuid().describe('Document UUID to delete'),
         confirmDelete: z.boolean().optional().default(true).describe('Whether to show confirmation dialog (default: true)')
       },
       async ({ uuid, confirmDelete = true }) => {
@@ -257,7 +257,7 @@ async function main() {
       'get_related_documents',
       'Get documents related to a specific document using DEVONthink AI',
       {
-        uuid: z.string().describe('Document UUID'),
+        uuid: z.string().uuid().describe('Document UUID'),
         limit: z.number().optional().default(10).describe('Maximum number of related documents (default: 10)')
       },
       async ({ uuid, limit = 10 }) => {
@@ -298,7 +298,7 @@ async function main() {
       'ocr_document',
       'Perform OCR on a PDF or image document in DEVONthink',
       {
-        uuid: z.string().describe('Document UUID')
+        uuid: z.string().uuid().describe('Document UUID')
       },
       async ({ uuid }) => {
         logger.info(`Performing OCR on document: ${uuid}`);
@@ -359,7 +359,7 @@ async function main() {
       'find_connections',
       'Find connections between a document and other documents (AI-based, references, etc.)',
       {
-        uuid: z.string().describe('Document UUID'),
+        uuid: z.string().uuid().describe('Document UUID'),
         maxResults: z.number().optional().default(10).describe('Maximum results to return (default: 10)')
       },
       async ({ uuid, maxResults = 10 }) => {
@@ -379,8 +379,8 @@ async function main() {
       'compare_documents',
       'Compare two documents for similarity based on tags and content metrics',
       {
-        uuid1: z.string().describe('First document UUID'),
-        uuid2: z.string().describe('Second document UUID')
+        uuid1: z.string().uuid().describe('First document UUID'),
+        uuid2: z.string().uuid().describe('Second document UUID')
       },
       async ({ uuid1, uuid2 }) => {
         logger.info(`Comparing documents: ${uuid1} and ${uuid2}`);
@@ -420,8 +420,8 @@ async function main() {
       'add_to_collection',
       'Add a document to an existing collection',
       {
-        collectionUUID: z.string().describe('Collection UUID'),
-        documentUUID: z.string().describe('Document UUID to add'),
+        collectionUUID: z.string().uuid().describe('Collection UUID'),
+        documentUUID: z.string().uuid().describe('Document UUID to add'),
         notes: z.string().optional().describe('Optional notes about why this document was added')
       },
       async ({ collectionUUID, documentUUID, notes = '' }) => {
@@ -442,7 +442,7 @@ async function main() {
       'build_knowledge_graph',
       'Build a knowledge graph showing document relationships with depth control',
       {
-        uuid: z.string().describe('Starting document UUID'),
+        uuid: z.string().uuid().describe('Starting document UUID'),
         maxDepth: z.number().optional().default(3).describe('Maximum traversal depth (default: 3)')
       },
       async ({ uuid, maxDepth = 3 }) => {
@@ -467,8 +467,8 @@ async function main() {
       'find_shortest_path',
       'Find the shortest connection path between two documents',
       {
-        startUUID: z.string().describe('Starting document UUID'),
-        targetUUID: z.string().describe('Target document UUID'),
+        startUUID: z.string().uuid().describe('Starting document UUID'),
+        targetUUID: z.string().uuid().describe('Target document UUID'),
         maxDepth: z.number().optional().default(5).describe('Maximum search depth (default: 5)')
       },
       async ({ startUUID, targetUUID, maxDepth = 5 }) => {
@@ -565,7 +565,7 @@ async function main() {
       'analyze_document',
       'Analyze document complexity, readability, and extract key information',
       {
-        uuid: z.string().describe('Document UUID')
+        uuid: z.string().uuid().describe('Document UUID')
       },
       async ({ uuid }) => {
         logger.info(`Analyzing document: ${uuid}`);
@@ -656,7 +656,7 @@ async function main() {
       'classify_document',
       'Use DEVONthink\'s native AI to classify a document and get AI-powered organizational suggestions',
       {
-        uuid: z.string().describe('Document UUID to classify using DEVONthink AI')
+        uuid: z.string().uuid().describe('Document UUID to classify using DEVONthink AI')
       },
       async ({ uuid }) => {
         logger.info(`Classifying document ${uuid} using DEVONthink AI`);
@@ -675,7 +675,7 @@ async function main() {
       'get_similar_documents',
       'Find documents similar to a given document using DEVONthink\'s native AI classification',
       {
-        uuid: z.string().describe('Source document UUID to find similar documents for'),
+        uuid: z.string().uuid().describe('Source document UUID to find similar documents for'),
         limit: z.number().optional().default(10).describe('Maximum number of similar documents to return (default: 10)')
       },
       async ({ uuid, limit = 10 }) => {
