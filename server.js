@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { DEVONthinkService } from './src/services/devonthink.js';
 import { DEVONthinkEnhancedService } from './src/services/devonthink_enhanced.js';
 import { getEnhancedDescription, getParameterDescriptions, toolDescriptions, exampleUsage } from './src/tool-descriptions.js';
+import connectionManager from './src/utils/connection-manager.js';
 // System prompt functionality removed during cleanup
 import { formatErrorResponse, formatResponse } from './src/utils/errors.js';
 import { 
@@ -1437,6 +1438,48 @@ Your goal is to help users conduct thorough, efficient research while leveraging
           }
         }
       ]
+    );
+
+    // Add performance monitoring tool
+    server.tool(
+      'get_performance_report',
+      'Get detailed performance metrics and connection health status',
+      {},
+      async () => {
+        logger.info('Getting performance report');
+        try {
+          const report = connectionManager.getPerformanceReport();
+          return {
+            content: [{ type: 'text', text: JSON.stringify(report, null, 2) }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'get_performance_report');
+        }
+      }
+    );
+
+    server.tool(
+      'reset_connection_state',
+      'Reset connection manager state and clear performance metrics',
+      {},
+      async () => {
+        logger.info('Resetting connection state');
+        try {
+          connectionManager.reset();
+          return {
+            content: [{ 
+              type: 'text', 
+              text: JSON.stringify({ 
+                status: 'success', 
+                message: 'Connection state reset successfully',
+                timestamp: new Date().toISOString()
+              }, null, 2) 
+            }]
+          };
+        } catch (error) {
+          return formatToolError(error, 'reset_connection_state');
+        }
+      }
     );
     
     // Use STDIO transport

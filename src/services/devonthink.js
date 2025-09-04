@@ -6,6 +6,7 @@ import { ErrorTypes, createError, errorHandlers, validators, formatResponse, cre
 import { ExternalAPIService } from './external_apis.js';
 import ArXivClient from './arxiv-client.js';
 import { formatMCPError, ErrorHandlers } from '../utils/enhanced-errors.js';
+import connectionManager from '../utils/connection-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +18,7 @@ export class DEVONthinkService {
     this.scriptsPath = path.join(__dirname, '../../scripts/devonthink');
     this.externalAPIs = new ExternalAPIService();
     this.arxivClient = new ArXivClient();
+    this.connectionManager = connectionManager;
   }
 
   async ensureDEVONthinkRunning() {
@@ -34,14 +36,15 @@ export class DEVONthinkService {
     }
   }
 
-  async runAppleScript(scriptName, args = []) {
+  async runAppleScriptDirect(scriptName, args = []) {
     // Check if DEVONthink is running first
     await this.ensureDEVONthinkRunning();
     const scriptPath = path.join(this.scriptsPath, `${scriptName}.applescript`);
     const escapedArgs = args.map(arg => {
       // Convert to string and handle undefined/null
       const argStr = String(arg || '');
-      return `"${argStr.replace(/"/g, '\\"')}"`;
+      // Use single quotes for shell and escape any single quotes in the content
+      return `'${argStr.replace(/'/g, "'\\''")}'`;
     }).join(' ');
     const command = `osascript "${scriptPath}" ${escapedArgs}`;
 
@@ -73,6 +76,15 @@ export class DEVONthinkService {
     } catch (error) {
       throw errorHandlers.scriptExecutionFailed(scriptName, error.message);
     }
+  }
+
+  async runAppleScript(scriptName, args = []) {
+    // Use connection manager for retry and cleanup
+    return await this.connectionManager.executeWithRetry(
+      () => this.runAppleScriptDirect(scriptName, args),
+      `applescript_${scriptName}`,
+      2 // Reduce retries to 2 for faster failure
+    );
   }
 
   async search(query, database, limit = 50, offset = 0) {
@@ -639,16 +651,15 @@ export class DEVONthinkService {
         }
       }
 
-      // Build parameters object
+      // Build parameters object for AppleScript
       const params = {
-        url,
         name: name || '',
         targetGroup: targetGroup || '',
         extractMetadata: extractMetadata || false,
-        tags: tags ? JSON.stringify(tags) : ''
+        tags: Array.isArray(tags) ? tags : []
       };
 
-      // Execute import with timeout
+      // Execute import with timeout - AppleScript expects URL first, then JSON params
       const result = await withTimeout(
         this.runAppleScript('import_url', [url, JSON.stringify(params)]),
         30000, // 30 second timeout for network operations
