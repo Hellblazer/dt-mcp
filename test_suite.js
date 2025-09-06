@@ -120,7 +120,7 @@ class UnifiedTestSuite {
         id: Math.random().toString(36).substr(2, 9),
         method: 'tools/call',
         params: {
-          name: `devonthink_${test.tool}`,
+          name: test.tool,
           arguments: test.params
         }
       };
@@ -168,7 +168,7 @@ class UnifiedTestSuite {
         id: op,
         method: 'tools/call',
         params: {
-          name: `devonthink_${tool}`,
+          name: tool,
           arguments: params
         }
       };
@@ -210,7 +210,7 @@ class UnifiedTestSuite {
         id: 'perf-' + Date.now(),
         method: 'tools/call',
         params: {
-          name: `devonthink_${test.tool}`,
+          name: test.tool,
           arguments: test.params
         }
       };
