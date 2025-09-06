@@ -1,7 +1,7 @@
 {
   "name": "devonthink-mcp-server",
-  "version": "2.1.0",
-  "description": "Advanced Research Automation MCP server for DEVONthink integration with 47 specialized tools, featuring Phase 4 bulk operations, workflow orchestration, and infrastructure for large-scale research projects",
+  "version": "3.0.0",
+  "description": "Streamlined DEVONthink MCP server with 9 unified tools for optimal context usage in Claude Desktop",
   "main": "server.js",
   "publishConfig": {
     "access": "public"
@@ -19,21 +19,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "LOG_LEVEL=DEBUG node server.js",
-    "test": "npm run test:scripts && npm run test:comprehensive",
-    "test:scripts": "osascript scripts/test/test_devonthink.applescript",
-    "test:comprehensive": "python3 tests/test_comprehensive.py",
-    "test:search": "python3 tests/test_search_functionality.py",
     "test:mcp": "npx @modelcontextprotocol/inspector server.js",
-    "test:tool": "node tests/test_mcp_tool.js",
-    "test:automated": "node tests/automated-test-suite.js",
-    "test:ci": "node tests/test-parameter-validation.js",
-    "test:validation": "node tests/test-parameter-validation.js",
-    "test:all": "node tests/run-all-tests.js",
     "lint": "npx eslint server.js src/ --ext .js || echo 'ESLint not configured'",
     "lint:applescript": "./scripts/validate_applescripts.sh",
     "lint:applescript:deep": "node scripts/lint_applescript.js",
-    "validate": "npm run lint && npm run lint:applescript && npm run lint:applescript:deep && npm run test:scripts",
-    "test:performance": "echo 'Testing performance optimizations...' && time npm run test:tool synthesize_documents '{\"documentUUIDs\": [\"test-uuid-1\", \"test-uuid-2\"], \"synthesisType\": \"summary\"}' && time npm run test:tool analyze_document_similarity '{\"uuids\": [\"test-uuid-1\", \"test-uuid-2\"]}'",
+    "validate": "npm run lint && npm run lint:applescript && npm run lint:applescript:deep",
+    "test": "node test_streamlined.js",
     "docs": "echo 'Documentation available in README.md'"
   },
   "dependencies": {
@@ -83,7 +74,7 @@
     "server.js",
     "src/",
     "scripts/",
-    "tests/test_mcp_tool.js",
+    "test_streamlined.js",
     "README.md",
     "LICENSE",
     "CLAUDE.md"

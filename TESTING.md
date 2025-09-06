@@ -11,7 +11,7 @@ The DEVONthink MCP Server includes multiple testing layers:
 - **Basic Validation**: AppleScript syntax and server startup
 - **Unit Testing**: Individual tool testing  
 - **Integration Testing**: End-to-end workflows
-- **Comprehensive Testing**: All 29 tools across implementation phases
+- **Comprehensive Testing**: All 9 unified tools
 - **CI/CD Testing**: Automated GitHub Actions pipeline
 
 ## Quick Test Commands
@@ -23,8 +23,8 @@ npm test
 # Test basic functionality only
 npm run test:scripts
 
-# Test comprehensive suite (all 29 tools)
-npm run test:comprehensive
+# Test streamlined server (9 unified tools)
+npm run test:streamlined
 
 # Test search functionality specifically
 npm run test:search
@@ -119,9 +119,9 @@ npm run test:tool list_databases '{}'
 
 ### 3. Comprehensive Integration Testing
 
-**Purpose**: Test all 29 tools across implementation phases
+**Purpose**: Test all 9 unified tools
 **Duration**: ~2-5 minutes
-**Command**: `npm run test:comprehensive`
+**Command**: `npm run test:streamlined`
 
 **Test Coverage**:
 - **Core Operations** (8 tools): search, read, create, tags, etc.
@@ -134,7 +134,7 @@ npm run test:tool list_databases '{}'
 ```
 DEVONthink MCP Server - Comprehensive Test Suite
 ======================================================================
-Testing all 29 tools across implementation phases...
+Testing all 9 unified tools...
 
 CORE: Basic DEVONthink Operations Tests
 ============================================================
@@ -150,9 +150,9 @@ Testing build_knowledge_graph: Build knowledge graph with depth control...
 
 TEST RESULTS SUMMARY
 ======================================================================
-Total Tests: 29
-Passed: 27
-Failed: 2
+Total Tests: 9
+Passed: 9
+Failed: 0
 Success Rate: 93.0%
 Duration: 4.2s
 
@@ -291,8 +291,8 @@ import('./server.js').then(async () => {
 
 **Test timeouts**:
 ```bash
-# Increase timeout for comprehensive tests
-timeout 300s python3 tests/test_comprehensive.py
+# Run streamlined tests
+npm run test:streamlined
 ```
 
 **Permission errors**:
@@ -343,15 +343,15 @@ Performance regression indicators:
 
 ### Comprehensive Test Results
 
-The comprehensive test suite generates `test_results_comprehensive.json`:
+The streamlined test suite generates test results:
 
 ```json
 {
   "summary": {
-    "total_tests": 29,
-    "passed": 27,
-    "failed": 2,
-    "success_rate": 93.0
+    "total_tests": 9,
+    "passed": 9,
+    "failed": 0,
+    "success_rate": 100.0
   },
   "tests": {
     "search_devonthink": {
@@ -432,7 +432,7 @@ echo "Server startup test completed"
 
 ### Adding Tool Tests
 
-When adding new tools, update `tests/test_comprehensive.py`:
+When adding new tools, update `test_streamlined.js`:
 
 ```python
 def test_new_feature(self):

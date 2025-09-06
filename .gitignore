@@ -32,11 +32,9 @@ logs/
 test-output/
 coverage/
 test_*.py
-test_*.js
 test_results_*.json
-# But keep test_comprehensive.py and test_mcp_tool.js
-!test_comprehensive.py
-!test_mcp_tool.js
+# Keep important test files
+!test_streamlined.js
 
 # Temporary files
 *.tmp

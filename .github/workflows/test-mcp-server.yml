@@ -40,7 +40,6 @@ jobs:
         
         # Check syntax without executing (will still fail without DEVONthink but validates basic syntax)
         osacompile -o /dev/null scripts/devonthink/search.applescript 2>&1 || echo "⚠️ search.applescript - DEVONthink not available on CI"
-        osacompile -o /dev/null scripts/devonthink/knowledge_synthesis.applescript 2>&1 || echo "⚠️ knowledge_synthesis.applescript - DEVONthink not available on CI"
         osacompile -o /dev/null scripts/devonthink/track_knowledge_evolution.applescript 2>&1 || echo "⚠️ track_knowledge_evolution.applescript - DEVONthink not available on CI"
         osacompile -o /dev/null scripts/devonthink/build_knowledge_graph.applescript 2>&1 || echo "⚠️ build_knowledge_graph.applescript - DEVONthink not available on CI"
         
@@ -149,90 +148,27 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Setup Python for testing
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Test Phase 4 Knowledge Synthesis (Mock Mode)
+    - name: Test Streamlined Server Tools (Mock Mode)
       run: |
-        # Create a mock version of the Phase 4 test that doesn't require DEVONthink
-        cat > test_phase4_ci.py << 'EOF'
-        #!/usr/bin/env python3
-        import subprocess
-        import json
-        import time
+        # Test that the streamlined server has all 9 tools defined
+        echo "🧪 Streamlined Server CI Testing (Mock Mode)"
+        echo "========================================"
         
-        def test_applescript_syntax():
-            """Test that AppleScript files have valid syntax"""
-            scripts = [
-                'scripts/devonthink/knowledge_synthesis.applescript',
-                'scripts/devonthink/track_knowledge_evolution.applescript'
-            ]
-            
-            for script in scripts:
-                try:
-                    result = subprocess.run(['osascript', script], 
-                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
-                    print(f"✅ {script} syntax check passed")
-                except Exception as e:
-                    print(f"❌ {script} syntax check failed: {e}")
-                    return False
-            return True
+        # Check that all 9 unified tools are defined in server.js
+        TOOLS=("search" "document" "analyze" "graph" "organize" "import" "research" "ai" "system")
         
-        def test_server_tools_defined():
-            """Test that Phase 4 tools are properly defined in server"""
-            try:
-                with open('server.js', 'r') as f:
-                    content = f.read()
-                
-                phase4_tools = [
-                    'synthesize_documents',
-                    'extract_themes', 
-                    'identify_trends',
-                    'create_multi_level_summary',
-                    'track_topic_evolution'
-                ]
-                
-                for tool in phase4_tools:
-                    if tool in content:
-                        print(f"✅ {tool} tool defined in server")
-                    else:
-                        print(f"❌ {tool} tool missing from server")
-                        return False
-                        
-                return True
-            except Exception as e:
-                print(f"❌ Error checking server tools: {e}")
-                return False
+        for tool in "${TOOLS[@]}"; do
+          if grep -q "server.tool('$tool'" server.js; then
+            echo "✅ $tool tool defined in server"
+          else
+            echo "❌ $tool tool missing from server"
+            exit 1
+          fi
+        done
         
-        def main():
-            print("🧪 Phase 4 CI Testing (Mock Mode)")
-            print("=" * 40)
-            
-            tests_passed = 0
-            total_tests = 2
-            
-            if test_applescript_syntax():
-                tests_passed += 1
-            
-            if test_server_tools_defined():
-                tests_passed += 1
-            
-            print(f"\n📊 Results: {tests_passed}/{total_tests} tests passed")
-            
-            if tests_passed == total_tests:
-                print("🎉 All CI tests passed!")
-                exit(0)
-            else:
-                print("❌ Some CI tests failed")
-                exit(1)
-        
-        if __name__ == "__main__":
-            main()
-        EOF
-        
-        python3 test_phase4_ci.py
+        echo ""
+        echo "📊 Results: All 9 streamlined tools verified"
+        echo "🎉 All CI tests passed!"
         
     - name: Generate test report
       run: |
@@ -240,7 +176,7 @@ jobs:
         echo "" >> test-report.md
         echo "- ✅ Server startup test" >> test-report.md
         echo "- ✅ AppleScript syntax validation" >> test-report.md  
-        echo "- ✅ Phase 4 tools definition check" >> test-report.md
+        echo "- ✅ Streamlined tools (9) definition check" >> test-report.md
         echo "" >> test-report.md
         echo "**Note**: Full functional testing requires DEVONthink installation and is not available in CI." >> test-report.md
         
@@ -252,5 +188,3 @@ jobs:
         path: |
           test-report.md
           test_*.js
-          test_*.py
-          tests/test_*.py

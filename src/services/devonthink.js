@@ -832,25 +832,25 @@ export class DEVONthinkService {
       // Enhanced arXiv handling using dedicated client
       if (source.toLowerCase() === 'arxiv') {
         try {
-          // Use our enhanced arXiv client
-          const downloadResult = await this.arxivClient.downloadPDF(identifier);
+          // Use the download_paper AppleScript which handles both download and import
+          const params = {
+            identifier: identifier,
+            targetGroup: targetGroup || '',
+            extractMetadata: extractMetadata || false,
+            tags: tags || [],
+            database: database || ''
+          };
           
-          // Import the downloaded PDF into DEVONthink
-          const importResult = await this.runAppleScript('import_file', [
-            downloadResult.tempPath,
-            targetGroup || '',
-            extractMetadata || false,
-            tags ? JSON.stringify(tags) : '',
-            database || '',
-            downloadResult.metadata.title // Use paper title as custom name
-          ]);
-          
-          // Clean up temporary files
-          await this.arxivClient.cleanup(downloadResult.tempDir);
+          const importResult = await this.runAppleScript('download_paper', ['arxiv', JSON.stringify(params)]);
           
           if (importResult.error) {
-            throw ErrorHandlers.arXivDownload(identifier, 'import_to_devonthink', new Error(importResult.error));
+            throw ErrorHandlers.arXivDownload(identifier, 'download_paper', new Error(importResult.error));
           }
+          
+          // Extract metadata from result
+          const downloadResult = {
+            metadata: importResult.metadata || {}
+          };
           
           // Return enhanced result with arXiv metadata
           return createSuccessResponse('arXiv paper downloaded and imported successfully', {

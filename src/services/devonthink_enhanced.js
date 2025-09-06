@@ -621,7 +621,7 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
 
   validateProjectConfig(config) {
     // More detailed debugging
-    console.error('VALIDATION DEBUG: config.projectName =', config.projectName, 'type =', typeof config.projectName);
+    // console.error('VALIDATION DEBUG: config.projectName =', config.projectName, 'type =', typeof config.projectName);
     if (!config.projectName || typeof config.projectName !== 'string') {
       throw new Error(`UNIQUE_ENHANCED_SERVICE_ERROR_12345: Project name validation failed. Received: ${JSON.stringify(config.projectName)} (type: ${typeof config.projectName})`);
     }
