@@ -1,6 +1,6 @@
 # Testing Guide
 
-Testing documentation for DEVONthink MCP Server.
+Testing documentation for DEVONthink MCP Server v3.0.0 with 9 unified tools.
 
 This guide covers all testing approaches, from basic validation to comprehensive integration testing.
 
@@ -8,26 +8,29 @@ This guide covers all testing approaches, from basic validation to comprehensive
 
 The DEVONthink MCP Server includes multiple testing layers:
 
+- **Unified Test Suite**: All-in-one testing for 9 tools
 - **Basic Validation**: AppleScript syntax and server startup
-- **Unit Testing**: Individual tool testing  
+- **Operation Testing**: Validates all 40+ operation modes  
+- **Performance Testing**: Response time benchmarks
 - **Integration Testing**: End-to-end workflows
-- **Comprehensive Testing**: All 9 unified tools
 - **CI/CD Testing**: Automated GitHub Actions pipeline
 
 ## Quick Test Commands
 
 ```bash
-# Run all tests
+# Run unified test suite (all tests)
 npm test
 
-# Test basic functionality only
-npm run test:scripts
+# Run specific test categories
+npm run test:comprehensive  # Tool functionality tests
+npm run test:operations     # Operation mapping tests
+npm run test:performance    # Performance benchmarks
 
-# Test streamlined server (9 unified tools)
-npm run test:streamlined
+# Validate AppleScript syntax
+npm run validate
 
-# Test search functionality specifically
-npm run test:search
+# Test individual tools
+npm run test:tool devonthink_search '{"mode": "basic", "query": "test"}'
 
 # Test individual tool
 npm run test:tool search_devonthink '{"query": "test"}'
@@ -121,7 +124,7 @@ npm run test:tool list_databases '{}'
 
 **Purpose**: Test all 9 unified tools
 **Duration**: ~2-5 minutes
-**Command**: `npm run test:streamlined`
+**Command**: `npm test`
 
 **Test Coverage**:
 - **Core Operations** (8 tools): search, read, create, tags, etc.
@@ -291,8 +294,8 @@ import('./server.js').then(async () => {
 
 **Test timeouts**:
 ```bash
-# Run streamlined tests
-npm run test:streamlined
+# Run tests
+npm test
 ```
 
 **Permission errors**:
@@ -343,7 +346,7 @@ Performance regression indicators:
 
 ### Comprehensive Test Results
 
-The streamlined test suite generates test results:
+The test suite generates test results:
 
 ```json
 {
@@ -432,7 +435,7 @@ echo "Server startup test completed"
 
 ### Adding Tool Tests
 
-When adding new tools, update `test_streamlined.js`:
+When adding new tools, update `test_server.js`:
 
 ```python
 def test_new_feature(self):

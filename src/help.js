@@ -1,9 +1,9 @@
 /**
- * Help system for streamlined DEVONthink MCP server
- * Provides detailed information about the 10 unified tools and their operations
+ * Help system for DEVONthink MCP server
+ * Provides detailed information about the 9 unified tools and their operations
  */
 
-export const streamlinedToolHelp = {
+export const toolHelp = {
   search: {
     description: 'Unified search with multiple modes: basic, advanced, batch, smart_groups',
     modes: {
@@ -284,21 +284,21 @@ export const streamlinedToolHelp = {
   }
 };
 
-export function getStreamlinedHelp(toolName = 'list', includeExamples = false) {
+export function getHelp(toolName = 'list', includeExamples = false) {
   if (toolName === 'list') {
     return {
-      totalTools: 10,
-      tools: Object.keys(streamlinedToolHelp),
+      totalTools: 9,
+      tools: Object.keys(toolHelp),
       descriptions: Object.fromEntries(
-        Object.entries(streamlinedToolHelp).map(([name, info]) => [name, info.description])
+        Object.entries(toolHelp).map(([name, info]) => [name, info.description])
       ),
       note: 'Use {"operation": "help", "toolName": "TOOL_NAME", "includeExamples": true} for detailed help on specific tools'
     };
   }
 
-  const tool = streamlinedToolHelp[toolName];
+  const tool = toolHelp[toolName];
   if (!tool) {
-    return { error: `Tool '${toolName}' not found. Available tools: ${Object.keys(streamlinedToolHelp).join(', ')}` };
+    return { error: `Tool '${toolName}' not found. Available tools: ${Object.keys(toolHelp).join(', ')}` };
   }
 
   const result = {
@@ -329,4 +329,4 @@ export function getStreamlinedHelp(toolName = 'list', includeExamples = false) {
   return result;
 }
 
-export default { streamlinedToolHelp, getStreamlinedHelp };
+export default { toolHelp, getHelp };

@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server that integrates Claude Desktop and Claude Code with DEVONthink 4, providing access to DEVONthink's AI capabilities for document management and research automation.
 
-**Latest Update (v3.0.0)**: Streamlined architecture with 9 unified tools that reduce Claude context usage by ~70% while preserving 100% functionality.
+**Latest Update (v3.0.0)**: Unified architecture with 9 consolidated tools that reduce Claude context usage by ~70% while preserving 100% functionality.
 
 [![Node.js CI](https://github.com/Hellblazer/dt-mcp/actions/workflows/test-mcp-server.yml/badge.svg)](https://github.com/Hellblazer/dt-mcp/actions/workflows/test-mcp-server.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -11,7 +11,7 @@ A Model Context Protocol (MCP) server that integrates Claude Desktop and Claude 
 
 ## Overview
 
-This MCP server provides a streamlined wrapper around DEVONthink 4's native capabilities with 9 unified multi-operation tools that reduce Claude context usage by ~70% while preserving 100% functionality.
+This MCP server provides a unified wrapper around DEVONthink 4's native capabilities with 9 consolidated multi-operation tools that reduce Claude context usage by ~70% while preserving 100% functionality.
 
 ✅ **All tools are 100% complete with full implementations** - no stubs, mocks, or placeholders.
 
@@ -376,11 +376,11 @@ npm run test:mcp
 
 ## Project Status
 
-- **Version**: 3.0.0 (Streamlined)
+- **Version**: 3.0.0
 - **Implementation**: ✅ **100% COMPLETE** - All functionality fully implemented
 - **Tools**: 9 unified multi-operation tools (consolidates 47+ individual operations)
 - **Context Reduction**: ~70% smaller footprint while preserving 100% functionality
-- **Architecture**: Streamlined wrapper around DEVONthink 4 native AI capabilities
+- **Architecture**: Unified wrapper around DEVONthink 4 native AI capabilities
 - **Testing**: Automated test suite with 100% tool coverage
 - **Quality**: Production-ready with comprehensive error handling
 - **Status**: 🚀 **NO STUBS OR PLACEHOLDERS** - All functionality preserved through operation modes

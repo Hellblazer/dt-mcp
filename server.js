@@ -111,12 +111,12 @@ function formatClientAwareResponse(toolName, response, originalParams, clientTyp
 }
 
 async function main() {
-  logger.info('Starting Streamlined DEVONthink MCP server');
+  logger.info('Starting DEVONthink MCP server');
   
   try {
     // Create the server
     const server = new McpServer({
-      name: 'DEVONthink MCP Streamlined',
+      name: 'DEVONthink MCP',
       version: '3.0.0'
     });
     
@@ -127,8 +127,8 @@ async function main() {
       {
         mode: z.enum(['basic', 'advanced', 'batch', 'smart_groups']).default('basic')
           .describe('Search mode'),
-        query: z.union([z.string(), z.array(z.string())])
-          .describe('Query string(s) - array for batch mode'),
+        query: z.union([z.string(), z.array(z.string())]).optional()
+          .describe('Query string(s) - array for batch mode, not needed for smart_groups'),
         database: z.string().optional().describe('Database name'),
         limit: z.number().optional().default(50).describe('Max results'),
         offset: z.number().optional().default(0).describe('Skip results'),
@@ -141,6 +141,11 @@ async function main() {
         const { mode, query, database, limit = 50, offset = 0 } = params;
         
         try {
+          // Validate query requirement based on mode
+          if (mode !== 'smart_groups' && !query) {
+            throw new Error(`Query is required for ${mode} mode`);
+          }
+          
           switch (mode) {
             case 'basic':
               const adjustedParams = applyClientLimits('search', params);
@@ -662,7 +667,7 @@ async function main() {
     // Register system prompt for AI guidance
     server.prompt(
       'devonthink_assistant',
-      'DEVONthink Research Assistant - Streamlined 9-tool architecture for powerful knowledge management',
+      'DEVONthink Research Assistant - 9 powerful unified tools for knowledge management',
       [
         {
           role: 'system',
@@ -702,7 +707,7 @@ import { operation: 'bulk_papers', papers: [...], extractMetadata: true }
 • Check system { operation: 'help', toolName: 'search' } for detailed tool help
 • Batch operations available for efficiency (batch_read, bulk_tag, bulk_import)
 
-Your goal: Help users efficiently manage knowledge using these 9 streamlined tools.`
+Your goal: Help users efficiently manage knowledge using these 9 unified tools.`
           }
         }
       ]
@@ -711,7 +716,7 @@ Your goal: Help users efficiently manage knowledge using these 9 streamlined too
     // Start the server
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logger.info('Streamlined DEVONthink MCP server started successfully');
+    logger.info('DEVONthink MCP server started successfully');
     
   } catch (error) {
     logger.error(`Failed to start server: ${error.message}`);

@@ -1,10 +1,10 @@
-# DEVONthink MCP Server - Streamlined v3.0
+# DEVONthink MCP Server v3.0
 
 Production-ready MCP server with **9 unified tools** (reduced from 49) for powerful DEVONthink 4 integration.
 
 ## 🎯 Architecture Overview
 
-**Version**: 3.0.0 (Streamlined)  
+**Version**: 3.0.0  
 **Tools**: 9 unified multi-operation tools (from 49 individual tools)  
 **Context Reduction**: ~70% smaller footprint  
 **Operations**: All 49 original operations preserved  
@@ -131,7 +131,7 @@ Production-ready MCP server with **9 unified tools** (reduced from 49) for power
 npm start
 
 # Run tests
-node test_streamlined.js
+node test_server.js
 
 # Verify operations mapping
 node verify_operations.js
@@ -184,7 +184,7 @@ See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for complete parameter reference an
 
 ## 🔄 Version History
 
-- **v3.0.0** - Streamlined architecture (9 tools from 49)
+- **v3.0.0** - Unified architecture (9 tools from 49)
 - **v2.1.0** - Full 49-tool implementation
 - **v1.0.0** - Initial release
 
@@ -199,6 +199,6 @@ See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for complete parameter reference an
 ---
 
 **Status**: Production Ready  
-**Architecture**: Streamlined 9-tool design  
+**Architecture**: Unified 9-tool design  
 **Compatibility**: Claude Desktop, Claude Code, MCP Inspector  
 **Requirements**: Node.js 18+, DEVONthink 4

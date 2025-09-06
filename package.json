@@ -1,7 +1,7 @@
 {
   "name": "devonthink-mcp-server",
   "version": "3.0.0",
-  "description": "Streamlined DEVONthink MCP server with 9 unified tools for optimal context usage in Claude Desktop",
+  "description": "DEVONthink MCP server with 9 unified tools for optimal context usage in Claude Desktop",
   "main": "server.js",
   "publishConfig": {
     "access": "public"
@@ -19,13 +19,16 @@
   "scripts": {
     "start": "node server.js",
     "dev": "LOG_LEVEL=DEBUG node server.js",
+    "test": "node test_suite.js",
+    "test:comprehensive": "node test_suite.js comprehensive",
+    "test:operations": "node test_suite.js operations",
+    "test:performance": "node test_suite.js performance",
     "test:mcp": "npx @modelcontextprotocol/inspector server.js",
+    "test:tool": "node test_mcp_tool.js",
     "lint": "npx eslint server.js src/ --ext .js || echo 'ESLint not configured'",
     "lint:applescript": "./scripts/validate_applescripts.sh",
     "lint:applescript:deep": "node scripts/lint_applescript.js",
-    "validate": "npm run lint && npm run lint:applescript && npm run lint:applescript:deep",
-    "test": "node test_streamlined.js",
-    "docs": "echo 'Documentation available in README.md'"
+    "validate": "npm run lint && npm run lint:applescript && npm run lint:applescript:deep"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.1",
@@ -74,9 +77,11 @@
     "server.js",
     "src/",
     "scripts/",
-    "test_streamlined.js",
+    "test_suite.js",
+    "test_mcp_tool.js",
     "README.md",
     "LICENSE",
-    "CLAUDE.md"
+    "CLAUDE.md",
+    "TESTING.md"
   ]
 }
