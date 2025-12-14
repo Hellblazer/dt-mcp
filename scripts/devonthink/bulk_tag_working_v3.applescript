@@ -7,7 +7,7 @@ on run argv
     set action to item 2 of argv
     set tagsJson to item 3 of argv
     
-    tell application "DEVONthink"
+    tell application id "DNtp"
         if not (exists current database) then
             return "{\"error\": \"No database is open\"}"
         end if

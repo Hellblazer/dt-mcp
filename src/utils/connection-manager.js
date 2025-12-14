@@ -73,18 +73,18 @@ class ConnectionManager {
    * Perform cleanup
    */
   async cleanup() {
-    console.log(`[ConnectionManager] Performing cleanup after ${this.operationCount} operations`);
-    
+    console.error(`[ConnectionManager] Performing cleanup after ${this.operationCount} operations`);
+
     // Kill any hanging osascript processes
     try {
       // Kill hanging osascript processes older than 30 seconds
       await execAsync(`pkill -f "osascript.*devonthink" || true`);
-      
+
       // Small delay to let system clean up
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       this.lastCleanup = Date.now();
-      console.log('[ConnectionManager] Cleanup completed');
+      console.error('[ConnectionManager] Cleanup completed');
     } catch (error) {
       console.error('[ConnectionManager] Cleanup error:', error);
     }
@@ -121,7 +121,7 @@ class ConnectionManager {
         // If not last attempt, wait with exponential backoff
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`[ConnectionManager] Retrying in ${delay}ms...`);
+          console.error(`[ConnectionManager] Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           
           // Force cleanup before retry if high error rate
@@ -160,7 +160,7 @@ class ConnectionManager {
    * Reset connection manager state
    */
   reset() {
-    console.log('[ConnectionManager] Resetting state');
+    console.error('[ConnectionManager] Resetting state');
     this.operationCount = 0;
     this.errorCount = 0;
     this.lastCleanup = Date.now();

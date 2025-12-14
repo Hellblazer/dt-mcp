@@ -5,7 +5,7 @@ on run argv
     
     set paramsJson to item 1 of argv
     
-    tell application "DEVONthink"
+    tell application id "DNtp"
         if not (exists current database) then
             return "{\"error\": \"No database is open\"}"
         end if

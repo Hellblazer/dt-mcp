@@ -46,11 +46,11 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
   setupEventHandlers() {
     // Operation Queue events
     this.operationQueue.on('operation_started', (data) => {
-      console.log(`Operation started: ${data.operationId} - ${data.description}`);
+      console.error(`Operation started: ${data.operationId} - ${data.description}`);
     });
 
     this.operationQueue.on('operation_completed', (data) => {
-      console.log(`Operation completed: ${data.operationId} (${data.duration}ms)`);
+      console.error(`Operation completed: ${data.operationId} (${data.duration}ms)`);
     });
 
     // Resource Monitor events
@@ -553,13 +553,14 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
 
     while (attempts < maxAttempts) {
       try {
-        return await this.importUrl({
+        // Call base class importUrl with positional parameters
+        return await super.importUrl(
           url,
-          targetGroup: options.targetGroup,
-          customName: options.customName,
-          tags: options.tags,
-          database: options.database
-        });
+          options.targetGroup || null,
+          options.extractMetadata !== false, // default true
+          options.tags || null,
+          options.customName || null
+        );
       } catch (error) {
         attempts++;
         if (attempts >= maxAttempts) {
@@ -575,28 +576,30 @@ export class DEVONthinkEnhancedService extends DEVONthinkService {
     // Try external API first, fallback to AppleScript
     try {
       var metadata = await this.externalAPIs.resolveAcademicPaper(paper.source, paper.identifier);
-      
+
       if (metadata.success && metadata.pdf_url) {
-        return await this.importUrl({
-          url: metadata.pdf_url,
-          targetGroup: options.targetGroup,
-          customName: metadata.title,
-          tags: [...(options.tags || []), ...metadata.keywords],
-          database: options.database
-        });
+        // Call base class importUrl with positional parameters
+        var combinedTags = [...(options.tags || []), ...(metadata.keywords || [])];
+        return await super.importUrl(
+          metadata.pdf_url,
+          options.targetGroup || null,
+          true, // extractMetadata - always true for academic papers
+          combinedTags.length > 0 ? combinedTags : null,
+          metadata.title || null
+        );
       }
     } catch (error) {
       console.warn(`API resolution failed for ${paper.source}:${paper.identifier}, falling back to AppleScript`);
     }
 
-    // Fallback to existing AppleScript method
-    return await this.downloadPaper(
+    // Fallback to existing AppleScript method - use base class method
+    return await super.downloadPaper(
       paper.source,
       paper.identifier,
-      options.targetGroup,
-      options.extractMetadata,
-      options.tags,
-      options.database
+      options.targetGroup || null,
+      options.extractMetadata !== false, // default true
+      options.tags || null,
+      options.database || null
     );
   }
 

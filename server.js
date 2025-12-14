@@ -460,8 +460,8 @@ async function main() {
           switch (type) {
             case 'url':
               if (Array.isArray(source)) {
-                const urls = await enhancedDevonthink.bulkImportUrls({
-                  urls: source,
+                // bulkImportUrls(urls, options) - first param is array, second is options object
+                const urls = await enhancedDevonthink.bulkImportUrls(source, {
                   targetGroup: params.targetGroup,
                   tags: params.tags,
                   extractMetadata: params.extractMetadata,
@@ -469,46 +469,55 @@ async function main() {
                 });
                 return { content: [{ type: 'text', text: JSON.stringify(urls, null, 2) }] };
               }
-              const url = await enhancedDevonthink.importUrl({
-                url: source,
-                targetGroup: params.targetGroup,
-                tags: params.tags,
-                extractMetadata: params.extractMetadata
-              });
+              // importUrl(url, targetGroup, extractMetadata, tags, name) - positional parameters
+              const url = await devonthink.importUrl(
+                source,
+                params.targetGroup || null,
+                params.extractMetadata !== false, // default true
+                params.tags || null,
+                null // name
+              );
               return { content: [{ type: 'text', text: JSON.stringify(url, null, 2) }] };
               
             case 'paper':
               if (Array.isArray(source)) {
-                const papers = await enhancedDevonthink.bulkDownloadPapers({
-                  papers: source.map(id => ({
-                    source: params.paperSource,
-                    identifier: id,
-                    targetGroup: params.targetGroup
-                  })),
+                // bulkDownloadPapers(papers, options) - first param is array of {source, identifier}, second is options
+                const papersList = source.map(id => ({
+                  source: params.paperSource,
+                  identifier: id,
+                  targetGroup: params.targetGroup
+                }));
+                const papers = await enhancedDevonthink.bulkDownloadPapers(papersList, {
                   tags: params.tags,
                   extractMetadata: params.extractMetadata,
-                  maxConcurrent: Math.min(params.maxConcurrent, 2)
+                  maxConcurrent: Math.min(params.maxConcurrent || 2, 2)
                 });
                 return { content: [{ type: 'text', text: JSON.stringify(papers, null, 2) }] };
               }
-              const paper = await enhancedDevonthink.downloadPaper({
-                source: params.paperSource,
-                identifier: source,
-                targetGroup: params.targetGroup,
-                tags: params.tags,
-                extractMetadata: params.extractMetadata
-              });
+              // downloadPaper(source, identifier, targetGroup, extractMetadata, tags, database) - positional parameters
+              const paper = await devonthink.downloadPaper(
+                params.paperSource,
+                source,
+                params.targetGroup || null,
+                params.extractMetadata !== false, // default true
+                params.tags || null,
+                null // database
+              );
               return { content: [{ type: 'text', text: JSON.stringify(paper, null, 2) }] };
               
             case 'batch':
-              // Generic batch import
-              const batch = await enhancedDevonthink.batchImport({
-                sources: Array.isArray(source) ? source.map(s => ({
-                  type: s.startsWith('http') ? 'url' : 'file',
-                  source: s,
-                  targetGroup: params.targetGroup
-                })) : []
-              });
+              // batchImport(sources, database, progressCallback) - positional parameters
+              // sources is an array of {type, source, targetGroup}
+              const sources = Array.isArray(source) ? source.map(s => ({
+                type: s.startsWith('http') ? 'url' : 'file',
+                source: s,
+                targetGroup: params.targetGroup
+              })) : [];
+              const batch = await devonthink.batchImport(
+                sources,
+                null, // database
+                false // progressCallback
+              );
               return { content: [{ type: 'text', text: JSON.stringify(batch, null, 2) }] };
               
             default:

@@ -4,10 +4,11 @@ Production-ready MCP server with **9 unified tools** (reduced from 49) for power
 
 ## 🎯 Architecture Overview
 
-**Version**: 3.0.0  
-**Tools**: 9 unified multi-operation tools (from 49 individual tools)  
-**Context Reduction**: ~70% smaller footprint  
-**Operations**: All 49 original operations preserved  
+**Version**: 3.0.0
+**Last Updated**: December 13, 2025
+**Tools**: 9 unified multi-operation tools (from 49 individual tools)
+**Context Reduction**: ~70% smaller footprint
+**Operations**: All 49 original operations preserved
 **Performance**: 30x+ improvement on expensive operations  
 
 ## 🚀 The 9 Unified Tools
@@ -86,18 +87,60 @@ Production-ready MCP server with **9 unified tools** (reduced from 49) for power
 
 ## 📊 Migration Map (49→9)
 
-| Original 49 Tools | Unified Tool | Operation/Mode |
-|-------------------|--------------|----------------|
+Complete mapping of all 49 v2.x tools to the 9 unified v3.0 tools:
+
+| Original v2.x Tool | Unified v3.0 Tool | Operation/Mode Parameter |
+|--------------------|-------------------|--------------------------|
 | search_devonthink | search | mode: 'basic' |
 | advanced_search | search | mode: 'advanced' |
 | batch_search | search | mode: 'batch' |
+| list_smart_groups | search | mode: 'smart_groups' |
 | read_document | document | operation: 'read' |
 | create_document | document | operation: 'create' |
+| update_tags | document | operation: 'update' |
+| ocr_document | document | operation: 'ocr' |
+| batch_read_documents | document | operation: 'batch_read' |
+| analyze_document | analyze | operation: 'analyze' |
+| analyze_document_similarity | analyze | operation: 'similarity' |
 | synthesize_documents | analyze | operation: 'synthesize' |
+| extract_themes | analyze | operation: 'themes' |
+| create_multi_level_summary | analyze | operation: 'summary' |
+| compare_documents | analyze | operation: 'compare' |
 | build_knowledge_graph | graph | operation: 'build' |
+| find_shortest_path | graph | operation: 'path' |
+| detect_knowledge_clusters | graph | operation: 'clusters' |
+| find_connections | graph | operation: 'connections' |
+| create_knowledge_timeline | graph | operation: 'timeline' |
+| create_group | organize | operation: 'create_group' |
+| create_collection | organize | operation: 'create_collection' |
+| move_to_group | organize | operation: 'move' |
+| bulk_tag | organize | operation: 'bulk_tag' |
+| auto_organize_by_type | organize | operation: 'auto_organize' |
+| create_folder_structure | organize | operation: 'folder_structure' |
+| import_url | import | type: 'url' (single or batch) |
+| download_paper | import | type: 'paper' (single or batch) |
+| bulk_import_urls | import | type: 'url', source: array |
+| bulk_download_papers | import | type: 'paper', source: array |
+| batch_import | import | type: 'batch' |
+| automate_research | research | workflow: 'explore' |
+| organize_findings | research | workflow: 'organize' |
+| track_topic_evolution | research | workflow: 'track_evolution' |
+| identify_trends | research | workflow: 'trends' |
+| create_research_project | research | workflow: 'create_project' |
 | classify_document | ai | operation: 'classify' |
-| import_url | import | type: 'url' |
-| ... (41 more) | ... | ... |
+| get_similar_documents | ai | operation: 'similar' |
+| get_related_documents | ai | operation: 'related' |
+| list_databases | system | operation: 'databases' |
+| monitor_operations | system | operation: 'monitor' |
+| get_performance_report | system | operation: 'performance' |
+| reset_connection_state | system | operation: 'reset' |
+| get_tool_help | system | operation: 'help' |
+| add_to_collection | organize | operation: 'move' + collections |
+| create_smart_group | search | mode: 'smart_groups' + create |
+| execute_workflow | research | workflow: various |
+| manage_operation_queue | system | operation: 'monitor' + queue |
+
+**Note**: Some v2.x tools map to combinations of v3.0 parameters. See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for complete parameter details.
 
 ## 🎯 Key Features
 

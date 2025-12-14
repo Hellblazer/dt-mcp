@@ -1,4 +1,4 @@
-tell application "DEVONthink"
+tell application id "DNtp"
     if not (exists current database) then
         return "{\"error\": \"No database is open\"}"
     end if
